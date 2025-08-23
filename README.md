@@ -47,7 +47,7 @@ This project showcases key capabilities for **Client Success AI/Data Engineer** 
 
 1. **Clone the repository**:
    ```bash
-   git clone <your-repo-url>
+   git clone https://github.com/JUnelus/Real-Time-Supply-Chain-Analytics-Dashboard.git
    cd supply-chain-analytics-dashboard
    ```
 
