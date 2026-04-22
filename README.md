@@ -129,6 +129,7 @@ supply-chain-analytics-dashboard/
 - **Loading States**: Visual feedback during processing
 - **Color Coding**: Intuitive status indicators (green/red/yellow)
 
+![img.png](img.png)
 ---
 
 **Built to demonstrate Client Success AI/Data Engineering skills** • Ready for production deployment
