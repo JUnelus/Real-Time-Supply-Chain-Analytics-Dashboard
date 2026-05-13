@@ -11,7 +11,7 @@
     "screenshots:update": "npm run build && node scripts/update-readme-screenshots.mjs"
   },
   "dependencies": {
-    "@tailwindcss/vite": "^4.2.4",
+    "@tailwindcss/vite": "^4.3.0",
     "lucide-react": "^0.541.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
