@@ -96,8 +96,9 @@ This project showcases key capabilities for **Client Success AI/Data Engineer** 
 
 - Daily workflow: `.github/workflows/daily-dashboard-ci.yml`
 - Schedule: every day at `09:00 UTC`
-- Jobs: install dependencies, run lint, run a production build
+- Jobs: install dependencies, run `npm audit` (moderate+), run lint, run production build
 - Manual run: available through `workflow_dispatch`
+- Automated dependency checks: `.github/dependabot.yml` (monthly GitHub Actions updates, weekly npm updates)
 
 ## 💼 Business Value
 
