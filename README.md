@@ -5,16 +5,17 @@
 ![Dashboard Preview](https://img.shields.io/badge/Status-Live%20Demo-brightgreen)
 ![Technology](https://img.shields.io/badge/Tech-React%2BTailwind%2BRecharts-blue)
 ![Skills](https://img.shields.io/badge/Skills-Data%20Engineering%2BAI%2FML-purple)
+![Daily CI](https://github.com/JUnelus/Real-Time-Supply-Chain-Analytics-Dashboard/actions/workflows/daily-dashboard-ci.yml/badge.svg)
 
 ## 🎯 Skills Demonstrated
 
 This project showcases key capabilities for **Client Success AI/Data Engineer** roles:
 
 - ✅ **Client-Ready Dashboards** - Executive-level KPI tracking and business intelligence
-- ✅ **Real-time Data Processing** - Live updates every 3 seconds with data quality monitoring  
-- ✅ **AI/ML Integration** - Demand forecasting, anomaly detection, route optimization
-- ✅ **Supply Chain Analytics** - Warehouse utilization, inventory turnover, delivery performance
-- ✅ **Data Visualization** - Interactive charts and responsive design for stakeholder reporting
+- ✅ **Real-time Data Processing** – Live updates every 3 seconds with data quality monitoring  
+- ✅ **AI/ML Integration** – Demand forecasting, anomaly detection, route optimization
+- ✅ **Supply Chain Analytics** – Warehouse utilization, inventory turnover, delivery performance
+- ✅ **Data Visualization** – Interactive charts and responsive design for stakeholder reporting
 
 ## 🔧 Technology Stack
 
@@ -27,7 +28,7 @@ This project showcases key capabilities for **Client Success AI/Data Engineer** 
 ## 📊 Key Features
 
 ### **Real-time KPI Monitoring**
-- 6 critical supply chain metrics with trend analysis
+- Six critical supply chain metrics with trend analysis
 - On-Time Delivery, Inventory Turnover, Order Accuracy
 - Cost per Shipment, Warehouse Utilization, Customer Rating
 
@@ -71,6 +72,33 @@ This project showcases key capabilities for **Client Success AI/Data Engineer** 
 - **Responsive Design**: Works on desktop and mobile devices
 - **Professional Styling**: Dark theme with gradient accents
 
+## 📸 Updated Dashboard Screenshots
+
+### Overview
+![Overview](docs/screenshots/overview.png)
+
+### Performance
+![Performance](docs/screenshots/performance.png)
+
+### Inventory
+![Inventory](docs/screenshots/inventory.png)
+
+### Shipments
+![Shipments](docs/screenshots/shipments.png)
+
+### AI Insights
+![AI Insights](docs/screenshots/ai-insights.png)
+
+### Alerts
+![Alerts](docs/screenshots/alerts.png)
+
+## 🤖 GitHub Actions Automation
+
+- Daily workflow: `.github/workflows/daily-dashboard-ci.yml`
+- Schedule: every day at `09:00 UTC`
+- Jobs: install dependencies, run lint, run production build
+- Manual run: available through `workflow_dispatch`
+
 ## 💼 Business Value
 
 This dashboard demonstrates the ability to:
@@ -93,6 +121,11 @@ This dashboard demonstrates the ability to:
 
 ```
 supply-chain-analytics-dashboard/
+├── .github/
+│   └── workflows/
+│       └── daily-dashboard-ci.yml  # Daily scheduled CI pipeline
+├── docs/
+│   └── screenshots/                # README screenshots by dashboard tab
 ├── src/
 │   ├── App.jsx              # Main dashboard component
 │   ├── main.jsx            # React entry point
@@ -128,8 +161,6 @@ supply-chain-analytics-dashboard/
 - **Interactive Charts**: Hover effects and tooltips
 - **Loading States**: Visual feedback during processing
 - **Color Coding**: Intuitive status indicators (green/red/yellow)
-
-![img.png](img.png)
 ---
 
 **Built to demonstrate Client Success AI/Data Engineering skills** • Ready for production deployment
