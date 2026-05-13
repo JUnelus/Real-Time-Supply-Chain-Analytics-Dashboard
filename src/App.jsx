@@ -56,7 +56,7 @@ function CustomTooltip({ active, payload, label }) {
   );
 }
 // ── KPI Card ─────────────────────────────────────────────────────────────────
-function KPICard({ title, value, unit, change, icon: Icon, accentColor, sparkData }) {
+function KPICard({ title, value, unit, change, icon, accentColor, sparkData }) {
   const positive = change >= 0;
   const fmt = typeof value === "number" ? value.toFixed(unit === "/5" || unit === "x" ? 1 : 1) : value;
   return (
@@ -64,7 +64,7 @@ function KPICard({ title, value, unit, change, icon: Icon, accentColor, sparkDat
       <div style={{ position: "absolute", top: -30, right: -30, width: 100, height: 100, borderRadius: "50%", background: accentColor, opacity: 0.07, filter: "blur(20px)", pointerEvents: "none" }} />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
         <div style={{ width: 36, height: 36, borderRadius: 10, background: accentColor + "25", border: "1px solid " + accentColor + "45", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Icon size={16} style={{ color: accentColor }} />
+          {icon ? React.createElement(icon, { size: 16, style: { color: accentColor } }) : null}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: positive ? "#00ffaa" : "#f87171", background: positive ? "rgba(0,255,170,0.1)" : "rgba(248,113,113,0.1)", padding: "2px 8px", borderRadius: 20 }}>
           {positive ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
@@ -171,11 +171,11 @@ function RegionRow({ r }) {
   );
 }
 // ── Section Header ────────────────────────────────────────────────────────────
-function SectionHeader({ icon: Icon, title, badge, badgeColor }) {
+function SectionHeader({ icon, title, badge, badgeColor }) {
   const bc = badgeColor || "#00e5ff";
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-      <Icon size={18} style={{ color: bc }} />
+      {icon ? React.createElement(icon, { size: 18, style: { color: bc } }) : null}
       <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: "#f1f5f9" }}>{title}</h3>
       {badge && (
         <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 20, background: bc + "20", color: bc, border: "1px solid " + bc + "30", fontWeight: 600, letterSpacing: 0.5 }}>{badge}</span>
