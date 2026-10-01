@@ -26,8 +26,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Security audit (moderate+)
-        run: npm audit --audit-level=moderate
+      # Only audit packages that ship in the built dashboard. Dev-only tooling
+      # (eslint, vite, playwright) is excluded so advisories against lint/build
+      # helpers do not fail the scheduled run; Dependabot still bumps them.
+      - name: Security audit (prod deps, moderate+)
+        run: npm audit --omit=dev --audit-level=moderate
 
       - name: Lint
         run: npm run lint
