@@ -7,7 +7,8 @@ import tailwindcss from '@tailwindcss/vite'
 const REPO_BASE = '/Real-Time-Supply-Chain-Analytics-Dashboard/'
 
 // https://vite.dev/config/
-export default defineConfig(({ command }) => ({
-  base: command === 'build' ? REPO_BASE : '/',
+export default defineConfig(({ command, isPreview }) => ({
+  // Production builds and `vite preview` use the Pages base path; `vite dev` stays at '/'.
+  base: command === 'build' || isPreview ? REPO_BASE : '/',
   plugins: [react(), tailwindcss()],
 }))
