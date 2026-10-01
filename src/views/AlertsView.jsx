@@ -12,7 +12,7 @@ export default function AlertsView({ alerts, onDismiss }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12 }}>
+      <div className="grid-tiles">
         {counts.map((s, i) => (
           <div key={i} className="glass rounded-xl" style={{ padding: 16, textAlign: "center" }}>
             <div style={{ fontSize: 28, fontWeight: 700, color: s.color }}>{s.count}</div>

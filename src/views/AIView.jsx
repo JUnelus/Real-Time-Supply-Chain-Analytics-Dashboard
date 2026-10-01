@@ -28,7 +28,7 @@ export default function AIView({ performanceData = [] }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px,1fr))", gap: 16 }}>
+      <div className="grid-cards-lg">
         {insights.map((ins) => <AIInsightCard key={ins.title} insight={ins} />)}
       </div>
       <div className="glass rounded-2xl" style={{ padding: 24 }}>

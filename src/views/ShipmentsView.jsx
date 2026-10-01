@@ -16,7 +16,7 @@ const STATUS_COLOR = { Excellent: "#00ffaa", Good: "#00e5ff", Fair: "#fbbf24", P
 export default function ShipmentsView({ shipmentData, regionData }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+      <div className="grid-halves">
         <div className="glass rounded-2xl" style={{ padding: 24 }}>
           <SectionHeader icon={Truck} title="Shipment Status Breakdown" badgeColor="#00e5ff" />
           <div style={{ height: 220 }}>

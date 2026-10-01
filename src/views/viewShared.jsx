@@ -139,7 +139,7 @@ export function AlertItem({ alert, onDismiss }) {
 export function AIInsightCard({ insight }) {
   return (
     <div className="glass glass-hover rounded-xl animate-fade-up" style={{ padding: 20, background: "linear-gradient(135deg, rgba(168,85,247,0.08), rgba(0,229,255,0.06))", border: "1px solid rgba(168,85,247,0.2)" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ width: 28, height: 28, borderRadius: 8, background: "rgba(168,85,247,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Cpu size={14} style={{ color: "#a855f7" }} />
@@ -153,7 +153,7 @@ export function AIInsightCard({ insight }) {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(168,85,247,0.15)", padding: "3px 10px", borderRadius: 20 }}>
           <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#a855f7" }} />
-          <span style={{ fontSize: 11, color: "#c4b5fd" }}>{insight.confidence}% {insight.confidenceLabel || "confidence"}</span>
+          <span style={{ fontSize: 11, color: "#c4b5fd", whiteSpace: "nowrap" }}>{insight.confidence}% {insight.confidenceLabel || "confidence"}</span>
         </div>
       </div>
       <div className="progress-bar" style={{ marginBottom: 10 }}>

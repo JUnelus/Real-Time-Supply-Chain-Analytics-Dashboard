@@ -234,7 +234,7 @@ npm run screenshots:update
 ## 🎨 UI/UX Features
 
 - **Dark Theme**: Professional gradient background
-- **Responsive Grid**: KPI and insight cards reflow with viewport width
+- **Responsive Layout**: three breakpoints - full 220px sidebar with two-column grids on desktop, a 72px icon rail with single-column grids on tablets (≤ 1024px), and a horizontal scrollable nav bar above the content on phones (≤ 640px); the page never scrolls horizontally, which the end-to-end suite checks at 390px, 820px and 1440px
 - **Interactive Charts**: Hover effects and tooltips
 - **Loading States**: Visual feedback during processing
 - **Color Coding**: Intuitive status indicators (green/red/yellow)

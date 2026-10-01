@@ -18,7 +18,7 @@ export default function OverviewView({ kpiData, kpiChanges, sparkSets, performan
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px,1fr))", gap: 16 }}>
         {kpis.map((k) => <KPICard key={k.key} title={k.title} value={k.value} unit={k.unit} change={k.change} icon={k.icon} accentColor={k.color} sparkData={sparkSets[k.key]} />)}
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 20 }}>
+      <div className="grid-main-side">
         <div className="glass rounded-2xl" style={{ padding: 24 }}>
           <SectionHeader icon={Activity} title="Real-Time Performance Trends" badge="LIVE" badgeColor="#00ffaa" />
           <div style={{ height: 260 }}>
