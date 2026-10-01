@@ -15,4 +15,11 @@ updates:
     labels:
       - "dependencies"
       - "security"
+    groups:
+      # playwright and @playwright/test must be bumped together or the
+      # runner and the browser driver fall out of sync.
+      playwright:
+        patterns:
+          - "playwright"
+          - "@playwright/*"
 
