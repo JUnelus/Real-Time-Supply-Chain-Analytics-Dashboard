@@ -115,6 +115,12 @@ This project showcases key capabilities for **Client Success AI/Data Engineer** 
 - Builds the production bundle and publishes `dist/` to GitHub Pages
 - Live at https://junelus.github.io/Real-Time-Supply-Chain-Analytics-Dashboard/
 
+### CodeQL — `.github/workflows/codeql.yml`
+- Runs on pushes and pull requests to `main`, weekly on Mondays, and on demand
+- Analyzes the JavaScript/React source and the GitHub Actions workflows with the `security-and-quality` query suite
+- Findings appear under **Security → Code scanning** and as pull request annotations
+- Replaces an earlier Qodana workflow that ran the JVM Community linter, which does not inspect JavaScript; the JavaScript linter needs an Ultimate licence
+
 ### Dependabot — `.github/dependabot.yml`
 - Weekly npm dependency updates, monthly GitHub Actions updates
 - `playwright` and `@playwright/test` are grouped so the test runner and browser driver are always bumped together
@@ -146,7 +152,7 @@ Real-Time-Supply-Chain-Analytics-Dashboard/
 │   └── workflows/
 │       ├── daily-dashboard-ci.yml      # Audit, lint, build (push + daily schedule)
 │       ├── deploy-pages.yml            # Build and publish to GitHub Pages
-│       └── qodana_code_quality.yml     # JetBrains Qodana static analysis
+│       └── codeql.yml                  # CodeQL static analysis (JavaScript + workflows)
 ├── docs/
 │   └── screenshots/                    # README screenshots, one per dashboard tab
 ├── e2e/
