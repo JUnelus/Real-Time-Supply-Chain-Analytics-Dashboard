@@ -16,6 +16,8 @@ import {
   advancePerformance,
   INVENTORY_CATEGORIES,
   mkInventory,
+  stepInventory,
+  RESTOCK_THRESHOLD,
   BASE_REGIONS,
   stepRegions,
   ALERT_POOL,
@@ -140,6 +142,31 @@ describe("mkInventory", () => {
       expect(row.current).toBeLessThan(1200);
       expect(row.turnover).toMatch(/^\d+\.\d$/);
     }
+  });
+});
+
+describe("stepInventory", () => {
+  const row = { category: "Books", current: 500, optimal: 600, turnover: "7.3" }; // burn 12/day
+
+  it("consumes about a day of stock at the burn rate and keeps the other fields", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.5); // rnd(0.5, 1.5) -> 1.0
+    const [next] = stepInventory([row]);
+    expect(next.current).toBe(488);
+    expect(next).toMatchObject({ category: "Books", optimal: 600, turnover: "7.3" });
+  });
+
+  it("restocks to optimal once stock falls to the threshold", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.5);
+    const low = { ...row, current: Math.ceil(row.optimal * RESTOCK_THRESHOLD) + 5 }; // 95 -> 83, at or under 90
+    expect(stepInventory([low])[0].current).toBe(600);
+  });
+
+  it("never goes negative and does not mutate the input", () => {
+    const input = [{ ...row, turnover: "0" }];
+    const out = stepInventory(input);
+    expect(out[0].current).toBe(500);
+    expect(out[0]).not.toBe(input[0]);
+    expect(input[0].current).toBe(500);
   });
 });
 

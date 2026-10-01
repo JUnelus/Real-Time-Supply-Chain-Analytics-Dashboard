@@ -1,11 +1,12 @@
 import React from "react";
 import { Cpu } from "lucide-react";
 import { SectionHeader, AIInsightCard } from "./viewShared";
-import { buildAnomalyInsight } from "../data/analytics";
+import { buildAnomalyInsight, buildReorderInsight } from "../data/analytics";
 
-// Illustrative insight copy. Each card is tagged SAMPLE in the UI; the
-// Anomaly Detection card is replaced at render time by a live computation
-// over the dashboard's 24-hour on-time series (see data/analytics.js).
+// Illustrative insight copy. Each card is tagged SAMPLE in the UI. Two cards
+// are replaced at render time by live computations (see data/analytics.js):
+// Anomaly Detection over the 24-hour on-time series, and Inventory Prediction
+// from each category's burn rate and reorder point.
 const SAMPLE_INSIGHTS = [
   { title: "Demand Forecasting", source: "sample", confidence: 87, description: "ML model predicts 23% increase in Electronics demand next week based on seasonal patterns and market signals.", action: "Recommend increasing inventory by 150 units" },
   { title: "Route Optimization", source: "sample", confidence: 92, description: "AI identified 3 inefficient delivery routes in the Southeast corridor. Rerouting can save 2.4 hours per truck.", action: "Potential savings: $1,200/week with route optimization" },
@@ -22,9 +23,12 @@ const ML_STATS = [
   { label: "Models in Production", value: "12", sub: "Active ML pipelines", color: "#fbbf24" },
 ];
 
-export default function AIView({ performanceData = [] }) {
-  const liveAnomaly = buildAnomalyInsight(performanceData);
-  const insights = SAMPLE_INSIGHTS.map((ins) => (ins.title === "Anomaly Detection" && liveAnomaly ? liveAnomaly : ins));
+export default function AIView({ performanceData = [], inventoryData = [] }) {
+  const live = {
+    "Anomaly Detection": buildAnomalyInsight(performanceData),
+    "Inventory Prediction": buildReorderInsight(inventoryData),
+  };
+  const insights = SAMPLE_INSIGHTS.map((ins) => live[ins.title] ?? ins);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>

@@ -121,3 +121,101 @@ export function buildAnomalyInsight(points, opts) {
     ],
   };
 }
+
+// ---------------------------------------------------------------------------
+// Inventory: reorder points from the burn rate
+// ---------------------------------------------------------------------------
+
+export const DEFAULT_LEAD_TIME_DAYS = 14;
+export const DEFAULT_SAFETY_DAYS = 7;
+
+// Daily demand implied by annual turnover. Turnover = units sold per year /
+// average stock on hand, and the optimal level is treated as that average.
+export const dailyDemand = (row) => (Number(row.optimal) * Number(row.turnover)) / 365;
+
+/**
+ * Score every inventory category against its reorder point.
+ * reorderPoint = dailyDemand x (leadTimeDays + safetyDays). A category at or
+ * below it should be ordered now so stock does not run out before delivery.
+ */
+export function analyzeInventory(rows, { leadTimeDays = DEFAULT_LEAD_TIME_DAYS, safetyDays = DEFAULT_SAFETY_DAYS } = {}) {
+  if (!rows || rows.length === 0) return null;
+
+  const scored = rows
+    .map((r) => {
+      const demand = dailyDemand(r);
+      const daysOfCover = demand > 0 ? r.current / demand : Infinity;
+      const reorderPoint = demand * (leadTimeDays + safetyDays);
+      const belowReorder = r.current <= reorderPoint;
+      return {
+        category: r.category,
+        current: r.current,
+        optimal: r.optimal,
+        demand,
+        daysOfCover,
+        reorderPoint,
+        belowReorder,
+        orderQty: belowReorder ? Math.max(0, Math.ceil(r.optimal - r.current)) : 0,
+      };
+    })
+    .sort((a, b) => a.daysOfCover - b.daysOfCover);
+
+  const flagged = scored.filter((s) => s.belowReorder);
+  return {
+    n: rows.length,
+    leadTimeDays,
+    safetyDays,
+    scored,
+    flagged,
+    tightest: scored[0],
+    totalOrderQty: flagged.reduce((acc, s) => acc + s.orderQty, 0),
+    // Share of categories that are still above their reorder point.
+    healthPct: Math.round(((rows.length - flagged.length) / rows.length) * 100),
+    status: flagged.length > 0 ? "reorder" : "ok",
+  };
+}
+
+const units = (n) => Math.round(n).toLocaleString("en-US");
+const days = (d) => (Number.isFinite(d) ? d.toFixed(1) : "\u221e");
+
+/** Build the AI Insights card content for the inventory table. */
+export function buildReorderInsight(rows, opts) {
+  const r = analyzeInventory(rows, opts);
+  if (!r) return null;
+
+  const t = r.tightest;
+  const window = `${r.leadTimeDays}-day lead time + ${r.safetyDays} days safety`;
+
+  let description;
+  let action;
+  if (r.status === "reorder") {
+    description =
+      `${t.category} holds ${units(t.current)} units against a burn rate of ${t.demand.toFixed(1)}/day, ` +
+      `about ${days(t.daysOfCover)} days of cover - below its reorder point of ${units(t.reorderPoint)} units (${window}). ` +
+      `${r.flagged.length} of ${r.n} categories are at or below their reorder point.`;
+    const others = r.flagged.slice(1).map((f) => `${units(f.orderQty)} ${f.category}`);
+    action = `Order ${units(t.orderQty)} units of ${t.category}${others.length ? ` and ${others.join(", ")}` : ""} to restore optimal stock`;
+  } else {
+    description =
+      `All ${r.n} categories sit above their reorder points (${window}). ` +
+      `Tightest is ${t.category} with ${days(t.daysOfCover)} days of cover: ${units(t.current)} units at ${t.demand.toFixed(1)}/day ` +
+      `against a reorder point of ${units(t.reorderPoint)}.`;
+    action = `No purchase orders needed - reorder ${t.category} once it drops to ${units(t.reorderPoint)} units`;
+  }
+
+  return {
+    title: "Inventory Prediction",
+    source: "live",
+    status: r.status,
+    confidence: r.healthPct,
+    confidenceLabel: "above reorder point",
+    description,
+    action,
+    stats: [
+      { label: "tightest cover", value: `${days(t.daysOfCover)}d` },
+      { label: "lead time", value: `${r.leadTimeDays}d + ${r.safetyDays}d safety` },
+      { label: "to reorder", value: `${r.flagged.length}/${r.n}` },
+      { label: "order qty", value: units(r.totalOrderQty) },
+    ],
+  };
+}

@@ -18,6 +18,7 @@ import {
   mkPerformance,
   advancePerformance,
   mkInventory,
+  stepInventory,
   SHIPMENT_STATUS,
   BASE_REGIONS,
   stepRegions,
@@ -143,7 +144,7 @@ export default function SupplyChainDashboard() {
   // first paint, then advanced on a fixed interval by `refresh`.
   const [alerts, setAlerts] = useState(() => mkAlerts());
   const [perf, setPerf] = useState(mkPerformance);
-  const [inv] = useState(mkInventory);
+  const [inv, setInv] = useState(mkInventory);
   const [regions, setRegions] = useState(BASE_REGIONS);
   const [sparks, setSparks] = useState(mkSparks);
   const [kpi, setKpi] = useState(INITIAL_KPI);
@@ -159,6 +160,7 @@ export default function SupplyChainDashboard() {
     pendingRefresh.current = setTimeout(() => {
       setKpi(stepKpi);
       setPerf(advancePerformance);
+      setInv(stepInventory);
       setSparks(mkSparks());
       setKpiChanges(mkKpiChanges());
       setRegions(stepRegions());
@@ -182,7 +184,7 @@ export default function SupplyChainDashboard() {
     performance: <PerformanceView performanceData={perf} />,
     inventory: <InventoryView inventoryData={inv} />,
     shipments: <ShipmentsView shipmentData={SHIPMENT_STATUS} regionData={regions} />,
-    ai: <AIView performanceData={perf} />,
+    ai: <AIView performanceData={perf} inventoryData={inv} />,
     alerts: <AlertsView alerts={alerts} onDismiss={dismissAlert} />,
   };
 

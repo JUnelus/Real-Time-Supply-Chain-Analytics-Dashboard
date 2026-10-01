@@ -43,7 +43,7 @@ export const KPI_CHANGE_RANGES = {
   otd: [-2, 4],
   inv: [-1, 2],
   oa: [0, 1],
-  cps: [-3, 0],
+  cps: [-3, 2],
   wu: [-1, 2],
   cr: [0, 0.5],
 };
@@ -110,6 +110,21 @@ export const mkInventory = () =>
     optimal: Math.floor(rnd(400, 1200)),
     turnover: rnd(2, 12).toFixed(1),
   }));
+
+// Each refresh consumes about one simulated day of stock at the category's
+// burn rate (optimal x turnover / 365, +/-50%). Once a category falls to
+// RESTOCK_THRESHOLD of optimal a delivery arrives and stock returns to optimal,
+// so the Inventory view and the live reorder insight keep moving.
+export const RESTOCK_THRESHOLD = 0.15;
+
+export function stepInventory(prev) {
+  return prev.map((row) => {
+    const burn = (row.optimal * Number(row.turnover)) / 365;
+    const next = row.current - burn * rnd(0.5, 1.5);
+    if (next <= row.optimal * RESTOCK_THRESHOLD) return { ...row, current: row.optimal };
+    return { ...row, current: Math.max(0, Math.round(next)) };
+  });
+}
 
 export const SHIPMENT_STATUS = [
   { name: "Delivered", value: 65 },
