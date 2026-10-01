@@ -5,6 +5,8 @@
 // functions so they can be unit-tested directly and so App.jsx is left with
 // only state and timer orchestration.
 
+import { DAILY_DEMAND_PROFILE } from "./analytics";
+
 export const rnd = (min, max) => Math.random() * (max - min) + min;
 export const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
@@ -95,6 +97,43 @@ export function advancePerformance(prev) {
   if (!prev || prev.length === 0) return mkPerformance();
   const last = prev[prev.length - 1];
   return [...prev.slice(1), mkPerfPoint((last.hour + 1) % 24)];
+}
+
+// ---------------------------------------------------------------------------
+// Hourly order volume (demand)
+// ---------------------------------------------------------------------------
+
+// orders = BASE x level x daily profile x noise. `level` is a slow random walk
+// carried from hour to hour, so the series has a genuine underlying trend for
+// the demand forecast in analytics.js to recover, on top of the known
+// intraday shape.
+export const BASE_ORDERS_PER_HOUR = 320;
+export const DEMAND_LEVEL_DRIFT = [-0.015, 0.02];
+export const DEMAND_LEVEL_BOUNDS = [0.6, 1.6];
+export const DEMAND_NOISE = [0.96, 1.04];
+
+const mkDemandPoint = (hour, prevLevel) => {
+  const level = clamp(prevLevel * (1 + rnd(...DEMAND_LEVEL_DRIFT)), ...DEMAND_LEVEL_BOUNDS);
+  const orders = Math.max(0, Math.round(BASE_ORDERS_PER_HOUR * level * DAILY_DEMAND_PROFILE[hour % 24] * rnd(...DEMAND_NOISE)));
+  return { hour, orders, level };
+};
+
+export function mkDemand() {
+  const out = [];
+  let level = 1;
+  for (let h = 0; h < PERF_HOURS; h++) {
+    const p = mkDemandPoint(h, level);
+    level = p.level;
+    out.push(p);
+  }
+  return out;
+}
+
+// Same rolling-window behaviour as the performance series.
+export function advanceDemand(prev) {
+  if (!prev || prev.length === 0) return mkDemand();
+  const last = prev[prev.length - 1];
+  return [...prev.slice(1), mkDemandPoint((last.hour + 1) % 24, last.level)];
 }
 
 // ---------------------------------------------------------------------------

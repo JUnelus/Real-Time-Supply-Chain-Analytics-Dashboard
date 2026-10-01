@@ -14,6 +14,10 @@ import {
   ON_TIME_RANGE,
   mkPerformance,
   advancePerformance,
+  BASE_ORDERS_PER_HOUR,
+  DEMAND_LEVEL_BOUNDS,
+  mkDemand,
+  advanceDemand,
   INVENTORY_CATEGORIES,
   mkInventory,
   stepInventory,
@@ -128,6 +132,38 @@ describe("performance window", () => {
   it("re-seeds a full window when given an empty one", () => {
     expect(advancePerformance([])).toHaveLength(PERF_HOURS);
     expect(advancePerformance(undefined)).toHaveLength(PERF_HOURS);
+  });
+});
+
+describe("demand series", () => {
+  it("seeds 24 hourly points with positive integer order counts and a bounded level", () => {
+    const demand = mkDemand();
+    expect(demand.map((p) => p.hour)).toEqual(Array.from({ length: 24 }, (_, i) => i));
+    for (const p of demand) {
+      expect(Number.isInteger(p.orders)).toBe(true);
+      expect(p.orders).toBeGreaterThan(0);
+      expect(p.level).toBeGreaterThanOrEqual(DEMAND_LEVEL_BOUNDS[0]);
+      expect(p.level).toBeLessThanOrEqual(DEMAND_LEVEL_BOUNDS[1]);
+    }
+  });
+
+  it("follows the daily profile: the overnight trough is well below the afternoon peak", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.5); // no noise, level drifts +0.25%/h
+    const demand = mkDemand();
+    const at = (h) => demand.find((p) => p.hour === h).orders;
+    expect(at(3)).toBeLessThan(at(13) / 3);
+    expect(at(0)).toBe(Math.round(BASE_ORDERS_PER_HOUR * 1.0025 * 0.55));
+  });
+
+  it("rolls the window forward and carries the level across the boundary", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.5);
+    const demand = mkDemand();
+    const next = advanceDemand(demand);
+    expect(next).toHaveLength(24);
+    expect(next[0]).toEqual(demand[1]);
+    expect(next[23].hour).toBe(0);
+    expect(next[23].level).toBeCloseTo(demand[23].level * 1.0025, 9);
+    expect(advanceDemand([])).toHaveLength(24);
   });
 });
 

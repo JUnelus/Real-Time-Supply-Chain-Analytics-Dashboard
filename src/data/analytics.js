@@ -219,3 +219,128 @@ export function buildReorderInsight(rows, opts) {
     ],
   };
 }
+
+// ---------------------------------------------------------------------------
+// Demand: seasonally adjusted trend forecast
+// ---------------------------------------------------------------------------
+
+// Baseline intraday shape of order volume relative to the daily average:
+// quiet overnight, climbing through the morning, peaking early afternoon.
+// In production this profile would be estimated from history; here it is the
+// known shape the simulation is built on, so the decomposition is exact up to
+// noise and level drift.
+export const DAILY_DEMAND_PROFILE = [
+  0.55, 0.45, 0.40, 0.38, 0.42, 0.55, 0.75, 0.95, 1.15, 1.30, 1.38, 1.42,
+  1.40, 1.45, 1.42, 1.35, 1.25, 1.15, 1.05, 0.95, 0.85, 0.78, 0.70, 0.60,
+];
+
+export const DEFAULT_FORECAST_HOURS = 6;
+
+// Ordinary least squares. A flat series is fitted exactly by a flat line, so
+// its R^2 is reported as 1 rather than left undefined.
+export function linearRegression(xs, ys) {
+  const n = xs.length;
+  if (n === 0) return { slope: 0, intercept: 0, r2: 0 };
+  if (n === 1) return { slope: 0, intercept: ys[0], r2: 1 };
+  const mx = mean(xs);
+  const my = mean(ys);
+  let sxy = 0;
+  let sxx = 0;
+  let syy = 0;
+  for (let i = 0; i < n; i++) {
+    const dx = xs[i] - mx;
+    const dy = ys[i] - my;
+    sxy += dx * dy;
+    sxx += dx * dx;
+    syy += dy * dy;
+  }
+  const slope = sxx === 0 ? 0 : sxy / sxx;
+  const intercept = my - slope * mx;
+  const ssRes = syy - slope * sxy;
+  const r2 = syy === 0 ? 1 : Math.max(0, Math.min(1, 1 - ssRes / syy));
+  return { slope, intercept, r2 };
+}
+
+/**
+ * Forecast hourly order volume.
+ *
+ * 1. Deseasonalise each hour by dividing by the daily profile -> underlying level.
+ * 2. Fit a straight line to the level over the window (slope = drift per hour).
+ * 3. Project the level forward and re-apply the profile for each coming hour.
+ *
+ * Returns null with fewer than two points.
+ */
+export function forecastDemand(points, { profile = DAILY_DEMAND_PROFILE, horizon = DEFAULT_FORECAST_HOURS } = {}) {
+  if (!points || points.length < 2) return null;
+
+  const n = points.length;
+  const xs = points.map((_, i) => i);
+  const level = points.map((p) => p.orders / profile[p.hour % 24]);
+  const { slope, intercept, r2 } = linearRegression(xs, level);
+  const currentLevel = intercept + slope * (n - 1);
+  const lastHour = points[n - 1].hour;
+
+  const forecast = Array.from({ length: horizon }, (_, k) => {
+    const hour = (lastHour + k + 1) % 24;
+    return { hour, orders: Math.max(0, Math.round((currentLevel + slope * (k + 1)) * profile[hour])), forecast: true };
+  });
+
+  const nextTotal = forecast.reduce((acc, f) => acc + f.orders, 0);
+  const recentTotal = points.slice(-horizon).reduce((acc, p) => acc + p.orders, 0);
+  const changePct = recentTotal > 0 ? ((nextTotal - recentTotal) / recentTotal) * 100 : 0;
+  const peak = forecast.reduce((best, f) => (f.orders > best.orders ? f : best), forecast[0]);
+  const trendPctPerHour = currentLevel > 0 ? (slope / currentLevel) * 100 : 0;
+
+  return {
+    n,
+    horizon,
+    slope,
+    intercept,
+    r2,
+    fitPct: Math.round(r2 * 100),
+    currentLevel,
+    trendPctPerHour,
+    forecast,
+    nextTotal,
+    recentTotal,
+    changePct,
+    peak,
+    status: changePct > 5 ? "rising" : changePct < -5 ? "falling" : "steady",
+  };
+}
+
+const pct = (v) => `${v >= 0 ? "+" : "-"}${Math.abs(v).toFixed(1)}%`;
+
+/** Build the AI Insights card content for the order-volume series. */
+export function buildDemandInsight(points, opts) {
+  const f = forecastDemand(points, opts);
+  if (!f) return null;
+
+  const description =
+    `Seasonally adjusted order volume is trending ${pct(f.trendPctPerHour)} per hour across the last ${f.n} hours (R² ${f.r2.toFixed(2)}). ` +
+    `The next ${f.horizon} hours should bring ${units(f.nextTotal)} orders, ${pct(f.changePct)} versus the last ${f.horizon} (${units(f.recentTotal)}), ` +
+    `peaking near ${units(f.peak.orders)} orders at ${formatHour(f.peak.hour)}.`;
+
+  const action =
+    f.status === "rising"
+      ? `Add pick-pack capacity ahead of ${formatHour(f.peak.hour)} - plan for about ${units(f.peak.orders)} orders/hour`
+      : f.status === "falling"
+        ? "Volume is easing - release overtime and schedule replenishment during the lull"
+        : "Volume is steady - hold current staffing and carrier allocations";
+
+  return {
+    title: "Demand Forecasting",
+    source: "live",
+    status: f.status,
+    confidence: Math.min(99, f.fitPct),
+    confidenceLabel: "trend fit (R²)",
+    description,
+    action,
+    stats: [
+      { label: "trend", value: `${pct(f.trendPctPerHour)}/h` },
+      { label: "R²", value: f.r2.toFixed(2) },
+      { label: `next ${f.horizon}h`, value: units(f.nextTotal) },
+      { label: "peak", value: `${units(f.peak.orders)} @ ${formatHour(f.peak.hour)}` },
+    ],
+  };
+}

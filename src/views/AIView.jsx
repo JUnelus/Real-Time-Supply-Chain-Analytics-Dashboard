@@ -1,12 +1,13 @@
 import React from "react";
 import { Cpu } from "lucide-react";
 import { SectionHeader, AIInsightCard } from "./viewShared";
-import { buildAnomalyInsight, buildReorderInsight } from "../data/analytics";
+import { buildAnomalyInsight, buildReorderInsight, buildDemandInsight } from "../data/analytics";
 
-// Illustrative insight copy. Each card is tagged SAMPLE in the UI. Two cards
+// Illustrative insight copy. Each card is tagged SAMPLE in the UI. Three cards
 // are replaced at render time by live computations (see data/analytics.js):
-// Anomaly Detection over the 24-hour on-time series, and Inventory Prediction
-// from each category's burn rate and reorder point.
+// Demand Forecasting from the hourly order series, Anomaly Detection over the
+// 24-hour on-time series, and Inventory Prediction from each category's burn
+// rate and reorder point.
 const SAMPLE_INSIGHTS = [
   { title: "Demand Forecasting", source: "sample", confidence: 87, description: "ML model predicts 23% increase in Electronics demand next week based on seasonal patterns and market signals.", action: "Recommend increasing inventory by 150 units" },
   { title: "Route Optimization", source: "sample", confidence: 92, description: "AI identified 3 inefficient delivery routes in the Southeast corridor. Rerouting can save 2.4 hours per truck.", action: "Potential savings: $1,200/week with route optimization" },
@@ -23,8 +24,9 @@ const ML_STATS = [
   { label: "Models in Production", value: "12", sub: "Active ML pipelines", color: "#fbbf24" },
 ];
 
-export default function AIView({ performanceData = [], inventoryData = [] }) {
+export default function AIView({ performanceData = [], inventoryData = [], demandData = [] }) {
   const live = {
+    "Demand Forecasting": buildDemandInsight(demandData),
     "Anomaly Detection": buildAnomalyInsight(performanceData),
     "Inventory Prediction": buildReorderInsight(inventoryData),
   };

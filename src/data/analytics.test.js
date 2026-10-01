@@ -14,6 +14,10 @@ import {
   buildReorderInsight,
   DEFAULT_LEAD_TIME_DAYS,
   DEFAULT_SAFETY_DAYS,
+  DAILY_DEMAND_PROFILE,
+  linearRegression,
+  forecastDemand,
+  buildDemandInsight,
 } from "./analytics";
 
 // 24 hours of a steady series with one clear dip at hour 14.
@@ -253,5 +257,110 @@ describe("buildReorderInsight", () => {
     expect(ins.action).toBe("Order 350 units of Sports and 400 Books to restore optimal stock");
     expect(ins.stats[2].value).toBe("2/2");
     expect(ins.stats[3].value).toBe("750");
+  });
+});
+
+const FLAT_PROFILE = Array(24).fill(1);
+// orders = 100 + 2i for i = 0..23 with a flat profile: level rises exactly 2/hour.
+const RISING = Array.from({ length: 24 }, (_, i) => ({ hour: i, orders: 100 + 2 * i }));
+
+describe("linearRegression", () => {
+  it("recovers slope, intercept and a perfect fit from an exact line", () => {
+    const xs = [0, 1, 2, 3, 4];
+    const { slope, intercept, r2 } = linearRegression(xs, xs.map((x) => 2 * x + 1));
+    expect(slope).toBeCloseTo(2, 9);
+    expect(intercept).toBeCloseTo(1, 9);
+    expect(r2).toBeCloseTo(1, 9);
+  });
+  it("treats a flat series as a perfect flat fit", () => {
+    expect(linearRegression([0, 1, 2], [5, 5, 5])).toEqual({ slope: 0, intercept: 5, r2: 1 });
+  });
+  it("reports a partial fit for noisy data and handles degenerate input", () => {
+    const { r2 } = linearRegression([0, 1, 2, 3], [0, 3, 1, 4]);
+    expect(r2).toBeGreaterThan(0);
+    expect(r2).toBeLessThan(1);
+    expect(linearRegression([], [])).toEqual({ slope: 0, intercept: 0, r2: 0 });
+    expect(linearRegression([7], [3])).toEqual({ slope: 0, intercept: 3, r2: 1 });
+  });
+});
+
+describe("forecastDemand", () => {
+  it("returns null with fewer than two points", () => {
+    expect(forecastDemand([])).toBeNull();
+    expect(forecastDemand([{ hour: 0, orders: 10 }])).toBeNull();
+  });
+
+  it("projects an exact linear trend forward and wraps the clock", () => {
+    const f = forecastDemand(RISING, { profile: FLAT_PROFILE });
+    expect(f.r2).toBeCloseTo(1, 9);
+    expect(f.fitPct).toBe(100);
+    expect(f.slope).toBeCloseTo(2, 9);
+    expect(f.currentLevel).toBeCloseTo(146, 9);
+    expect(f.forecast.map((p) => p.hour)).toEqual([0, 1, 2, 3, 4, 5]);
+    expect(f.forecast.map((p) => p.orders)).toEqual([148, 150, 152, 154, 156, 158]);
+    expect(f.nextTotal).toBe(918);
+    expect(f.recentTotal).toBe(846); // 136 + 138 + ... + 146
+    expect(f.changePct).toBeCloseTo((918 - 846) / 846 * 100, 9);
+    expect(f.peak).toMatchObject({ hour: 5, orders: 158 });
+    expect(f.trendPctPerHour).toBeCloseTo((2 / 146) * 100, 9);
+    expect(f.status).toBe("rising");
+  });
+
+  it("removes the daily profile before fitting and re-applies it to the forecast", () => {
+    // Exact level 300 + 3i shaped by the real profile -> deseasonalised fit is perfect.
+    const shaped = Array.from({ length: 24 }, (_, i) => ({ hour: i, orders: (300 + 3 * i) * DAILY_DEMAND_PROFILE[i] }));
+    const f = forecastDemand(shaped);
+    expect(f.r2).toBeCloseTo(1, 9);
+    expect(f.slope).toBeCloseTo(3, 9);
+    const L = 300 + 3 * 23;
+    f.forecast.forEach((p, k) => {
+      expect(p.hour).toBe(k); // after hour 23 the forecast covers 00:00-05:00
+      expect(p.orders).toBe(Math.round((L + 3 * (k + 1)) * DAILY_DEMAND_PROFILE[k]));
+    });
+  });
+
+  it("classifies falling and steady volume", () => {
+    const falling = Array.from({ length: 24 }, (_, i) => ({ hour: i, orders: 400 - 5 * i }));
+    expect(forecastDemand(falling, { profile: FLAT_PROFILE }).status).toBe("falling");
+    const flat = Array.from({ length: 24 }, (_, i) => ({ hour: i, orders: 300 }));
+    const f = forecastDemand(flat, { profile: FLAT_PROFILE });
+    expect(f.status).toBe("steady");
+    expect(f.changePct).toBe(0);
+    expect(f.r2).toBe(1);
+  });
+
+  it("respects a custom horizon and never forecasts negative orders", () => {
+    const f = forecastDemand(RISING, { profile: FLAT_PROFILE, horizon: 3 });
+    expect(f.forecast).toHaveLength(3);
+    const collapsing = Array.from({ length: 24 }, (_, i) => ({ hour: i, orders: Math.max(0, 50 - 10 * i) }));
+    expect(forecastDemand(collapsing, { profile: FLAT_PROFILE }).forecast.every((p) => p.orders >= 0)).toBe(true);
+  });
+});
+
+describe("buildDemandInsight", () => {
+  it("returns null without enough data", () => {
+    expect(buildDemandInsight([])).toBeNull();
+  });
+
+  it("describes a rising trend with totals, peak and a capacity action", () => {
+    const ins = buildDemandInsight(RISING, { profile: FLAT_PROFILE });
+    expect(ins.title).toBe("Demand Forecasting");
+    expect(ins.source).toBe("live");
+    expect(ins.status).toBe("rising");
+    expect(ins.confidence).toBe(99); // R² of 1.00, capped so the card never claims certainty
+    expect(ins.confidenceLabel).toBe("trend fit (R²)");
+    expect(ins.description).toContain("trending +1.4% per hour across the last 24 hours (R² 1.00)");
+    expect(ins.description).toContain("The next 6 hours should bring 918 orders, +8.5% versus the last 6 (846), peaking near 158 orders at 05:00.");
+    expect(ins.action).toBe("Add pick-pack capacity ahead of 05:00 - plan for about 158 orders/hour");
+    expect(ins.stats.map((s) => s.label)).toEqual(["trend", "R²", "next 6h", "peak"]);
+    expect(ins.stats[0].value).toBe("+1.4%/h");
+    expect(ins.stats[3].value).toBe("158 @ 05:00");
+  });
+
+  it("recommends easing off when volume is falling and holding when steady", () => {
+    const falling = Array.from({ length: 24 }, (_, i) => ({ hour: i, orders: 400 - 5 * i }));
+    expect(buildDemandInsight(falling, { profile: FLAT_PROFILE }).action).toContain("Volume is easing");
+    const flat = Array.from({ length: 24 }, (_, i) => ({ hour: i, orders: 300 }));
+    expect(buildDemandInsight(flat, { profile: FLAT_PROFILE }).action).toContain("Volume is steady");
   });
 });
