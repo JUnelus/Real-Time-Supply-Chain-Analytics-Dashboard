@@ -54,7 +54,7 @@ This project showcases key capabilities for **Client Success AI/Data Engineer** 
 
 ## 🚀 Quick Start
 
-**Prerequisites**: Node.js 20.19+ (or 22.12+) and npm. Vite 7 does not support older Node releases.
+**Prerequisites**: Node.js 22.22+ (see `.nvmrc`) and npm. Vite 7 needs 22.12+, and the jsdom test environment needs 22.22+; Node 20 reached end of life in April 2026 and is not supported.
 
 1. **Clone the repository**:
    ```bash
