@@ -108,9 +108,11 @@ export function advancePerformance(prev) {
 // the demand forecast in analytics.js to recover, on top of the known
 // intraday shape.
 export const BASE_ORDERS_PER_HOUR = 320;
-export const DEMAND_LEVEL_DRIFT = [-0.015, 0.02];
+// Drift is deliberately larger than the per-hour noise so the forecast's
+// trend fit usually has something real to recover.
+export const DEMAND_LEVEL_DRIFT = [-0.02, 0.03];
 export const DEMAND_LEVEL_BOUNDS = [0.6, 1.6];
-export const DEMAND_NOISE = [0.96, 1.04];
+export const DEMAND_NOISE = [0.975, 1.025];
 
 const mkDemandPoint = (hour, prevLevel) => {
   const level = clamp(prevLevel * (1 + rnd(...DEMAND_LEVEL_DRIFT)), ...DEMAND_LEVEL_BOUNDS);

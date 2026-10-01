@@ -148,11 +148,11 @@ describe("demand series", () => {
   });
 
   it("follows the daily profile: the overnight trough is well below the afternoon peak", () => {
-    vi.spyOn(Math, "random").mockReturnValue(0.5); // no noise, level drifts +0.25%/h
+    vi.spyOn(Math, "random").mockReturnValue(0.5); // no noise, level drifts +0.5%/h
     const demand = mkDemand();
     const at = (h) => demand.find((p) => p.hour === h).orders;
     expect(at(3)).toBeLessThan(at(13) / 3);
-    expect(at(0)).toBe(Math.round(BASE_ORDERS_PER_HOUR * 1.0025 * 0.55));
+    expect(at(0)).toBe(Math.round(BASE_ORDERS_PER_HOUR * 1.005 * 0.55));
   });
 
   it("rolls the window forward and carries the level across the boundary", () => {
@@ -162,7 +162,7 @@ describe("demand series", () => {
     expect(next).toHaveLength(24);
     expect(next[0]).toEqual(demand[1]);
     expect(next[23].hour).toBe(0);
-    expect(next[23].level).toBeCloseTo(demand[23].level * 1.0025, 9);
+    expect(next[23].level).toBeCloseTo(demand[23].level * 1.005, 9);
     expect(advanceDemand([])).toHaveLength(24);
   });
 });

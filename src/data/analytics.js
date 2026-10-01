@@ -309,7 +309,8 @@ export function forecastDemand(points, { profile = DAILY_DEMAND_PROFILE, horizon
   };
 }
 
-const pct = (v) => `${v >= 0 ? "+" : "-"}${Math.abs(v).toFixed(1)}%`;
+// Values that round to 0.0 are shown as "+0.0%" rather than "-0.0%".
+const pct = (v) => `${v > -0.05 ? "+" : "-"}${Math.abs(v).toFixed(1)}%`;
 
 /** Build the AI Insights card content for the order-volume series. */
 export function buildDemandInsight(points, opts) {
