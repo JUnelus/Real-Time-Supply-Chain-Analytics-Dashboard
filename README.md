@@ -2,28 +2,36 @@
 
 **Real-time analytics dashboard for supply chain optimization with AI-powered insights**
 
+**▶ Live demo: https://junelus.github.io/Real-Time-Supply-Chain-Analytics-Dashboard/**
+
 ![Dashboard Preview](https://img.shields.io/badge/Status-Live%20Demo-brightgreen)
-![Technology](https://img.shields.io/badge/Tech-React%2BTailwind%2BRecharts-blue)
+![Technology](https://img.shields.io/badge/Tech-React%2019%2BVite%2BTailwind%2BRecharts-blue)
 ![Skills](https://img.shields.io/badge/Skills-Data%20Engineering%2BAI%2FML-purple)
 ![Daily CI](https://github.com/JUnelus/Real-Time-Supply-Chain-Analytics-Dashboard/actions/workflows/daily-dashboard-ci.yml/badge.svg)
+![Deploy](https://github.com/JUnelus/Real-Time-Supply-Chain-Analytics-Dashboard/actions/workflows/deploy-pages.yml/badge.svg)
 
 ## 🎯 Skills Demonstrated
 
 This project showcases key capabilities for **Client Success AI/Data Engineer** roles:
 
 - ✅ **Client-Ready Dashboards** - Executive-level KPI tracking and business intelligence
-- ✅ **Real-time Data Processing** – Live updates every 3 seconds with data quality monitoring  
+- ✅ **Real-time Data Processing** – Live updates every 3 seconds with data quality monitoring
 - ✅ **AI/ML Integration** – Demand forecasting, anomaly detection, route optimization
 - ✅ **Supply Chain Analytics** – Warehouse utilization, inventory turnover, delivery performance
 - ✅ **Data Visualization** – Interactive charts and responsive design for stakeholder reporting
 
 ## 🔧 Technology Stack
 
-- **Frontend**: React 18, Vite, Tailwind CSS
+- **Frontend**: React 19, Vite 7, Tailwind CSS 4 (via `@tailwindcss/vite`)
 - **Data Visualization**: Recharts library for interactive charts
 - **Real-time Processing**: State management with live data simulation
 - **AI Features**: ML-driven insights with confidence scoring
 - **Icons**: Lucide React for professional UI elements
+- **Hosting**: GitHub Pages, deployed automatically from `main`
+
+> **Note on data:** every metric, chart, and insight in the dashboard is generated client-side by a simulation layer.
+> There is no backend or external API. The project demonstrates dashboard architecture, real-time state handling,
+> and visualization design rather than a connection to a live supply chain system.
 
 ## 📊 Key Features
 
@@ -39,17 +47,19 @@ This project showcases key capabilities for **Client Success AI/Data Engineer** 
 - Customer behavior analysis with NLP insights
 
 ### **Executive Reporting**
-- Interactive charts (Line, Bar, Pie) for data visualization
+- Interactive charts (Area, Bar, Pie) for data visualization
 - Real-time alerts with priority classification
 - Performance trends over 24-hour periods
 - Inventory analysis by product category
 
 ## 🚀 Quick Start
 
+**Prerequisites**: Node.js 20.19+ (or 22.12+) and npm. Vite 7 does not support older Node releases.
+
 1. **Clone the repository**:
    ```bash
    git clone https://github.com/JUnelus/Real-Time-Supply-Chain-Analytics-Dashboard.git
-   cd supply-chain-analytics-dashboard
+   cd Real-Time-Supply-Chain-Analytics-Dashboard
    ```
 
 2. **Install dependencies**:
@@ -69,10 +79,10 @@ This project showcases key capabilities for **Client Success AI/Data Engineer** 
 - **Live Clock**: Real-time timestamp updates
 - **Data Refresh**: Automatic updates every 3 seconds
 - **Processing Indicator**: Visual feedback during data updates
-- **Responsive Design**: Works on desktop and mobile devices
+- **Six Views**: Overview, Performance, Inventory, Shipments, AI Insights, Alerts (lazy-loaded per tab)
 - **Professional Styling**: Dark theme with gradient accents
 
-## 📸 Updated Dashboard Screenshots
+## 📸 Dashboard Screenshots
 
 ### Overview
 ![Overview](docs/screenshots/overview.png)
@@ -94,11 +104,18 @@ This project showcases key capabilities for **Client Success AI/Data Engineer** 
 
 ## 🤖 GitHub Actions Automation
 
-- Daily workflow: `.github/workflows/daily-dashboard-ci.yml`
-- Schedule: every day at `09:00 UTC`
-- Jobs: install dependencies, run `npm audit` (moderate+), run lint, run production build
-- Manual run: available through `workflow_dispatch`
-- Automated dependency checks: `.github/dependabot.yml` (monthly GitHub Actions updates, weekly npm updates)
+### Daily Dashboard CI — `.github/workflows/daily-dashboard-ci.yml`
+- Runs on every push, daily at `09:00 UTC`, and on demand via `workflow_dispatch`
+- Steps: `npm ci`, `npm audit --omit=dev --audit-level=moderate` (production dependencies only), `npm run lint`, `npm run build`
+- Dev-only tooling (ESLint, Vite, Playwright) is excluded from the audit gate so advisories against build helpers do not fail the scheduled run; Dependabot still opens PRs for them
+
+### Deploy to GitHub Pages — `.github/workflows/deploy-pages.yml`
+- Runs on every push to `main` and on demand
+- Builds the production bundle and publishes `dist/` to GitHub Pages
+- Live at https://junelus.github.io/Real-Time-Supply-Chain-Analytics-Dashboard/
+
+### Dependabot — `.github/dependabot.yml`
+- Weekly npm dependency updates, monthly GitHub Actions updates
 
 ## 💼 Business Value
 
@@ -121,21 +138,35 @@ This dashboard demonstrates the ability to:
 ## 🔗 Repository Structure
 
 ```
-supply-chain-analytics-dashboard/
+Real-Time-Supply-Chain-Analytics-Dashboard/
 ├── .github/
+│   ├── dependabot.yml                  # Weekly npm / monthly Actions updates
 │   └── workflows/
-│       └── daily-dashboard-ci.yml  # Daily scheduled CI pipeline
+│       ├── daily-dashboard-ci.yml      # Audit, lint, build (push + daily schedule)
+│       ├── deploy-pages.yml            # Build and publish to GitHub Pages
+│       └── qodana_code_quality.yml     # JetBrains Qodana static analysis
 ├── docs/
-│   └── screenshots/                # README screenshots by dashboard tab
+│   └── screenshots/                    # README screenshots, one per dashboard tab
+├── public/                             # Static assets copied as-is into the build
+├── scripts/
+│   └── update-readme-screenshots.mjs   # Playwright script that regenerates screenshots
 ├── src/
-│   ├── App.jsx              # Main dashboard component
-│   ├── main.jsx            # React entry point
-│   └── index.css           # Global styles
-├── public/                  # Static assets
-├── index.html              # HTML template with Tailwind CDN
-├── package.json            # Dependencies and scripts
-├── vite.config.js          # Vite configuration
-└── README.md              # Project documentation
+│   ├── App.jsx                         # Shell: sidebar, top bar, data simulation, tab routing
+│   ├── main.jsx                        # React entry point
+│   ├── index.css                       # Global styles and Tailwind import
+│   └── views/
+│       ├── OverviewView.jsx            # KPI cards, performance trend, shipment status, regions
+│       ├── PerformanceView.jsx         # 24-hour performance analytics
+│       ├── InventoryView.jsx           # Inventory by category
+│       ├── ShipmentsView.jsx           # Shipment status and regional breakdown
+│       ├── AIView.jsx                  # AI insight cards and model metrics
+│       ├── AlertsView.jsx              # Priority-classified alerts with dismissal
+│       └── viewShared.jsx              # Shared cards, tooltip, section headers
+├── index.html                          # HTML template (Vite entry)
+├── vite.config.js                      # Vite config; sets the Pages base path for builds
+├── eslint.config.js                    # ESLint flat config (React hooks + refresh rules)
+├── package.json                        # Dependencies and scripts
+└── README.md                           # Project documentation
 ```
 
 ## 📈 Data Features
@@ -148,12 +179,11 @@ supply-chain-analytics-dashboard/
 
 ## 🛠️ Development
 
-**Prerequisites**: Node.js 16+, npm
-
 **Available Scripts**:
 - `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build
+- `npm run build` - Build for production (output in `dist/`, base path set for GitHub Pages)
+- `npm run preview` - Serve the production build locally at `http://127.0.0.1:4173/Real-Time-Supply-Chain-Analytics-Dashboard/`
+- `npm run lint` - Run ESLint
 - `npm run screenshots:update` - Rebuild and capture fresh screenshots for each dashboard tab
 
 ### Refresh README Screenshots
@@ -169,7 +199,7 @@ npm run screenshots:update
 ## 🎨 UI/UX Features
 
 - **Dark Theme**: Professional gradient background
-- **Responsive Grid**: Adapts to different screen sizes
+- **Responsive Grid**: KPI and insight cards reflow with viewport width
 - **Interactive Charts**: Hover effects and tooltips
 - **Loading States**: Visual feedback during processing
 - **Color Coding**: Intuitive status indicators (green/red/yellow)
