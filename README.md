@@ -29,9 +29,11 @@ This project showcases key capabilities for **Client Success AI/Data Engineer** 
 - **Icons**: Lucide React for professional UI elements
 - **Hosting**: GitHub Pages, deployed automatically from `main`
 
-> **Note on data:** every metric, chart, and insight in the dashboard is generated client-side by a simulation layer.
-> There is no backend or external API. The project demonstrates dashboard architecture, real-time state handling,
-> and visualization design rather than a connection to a live supply chain system.
+> **Note on data:** every metric and chart in the dashboard is generated client-side by a simulation layer
+> (`src/data/simulation.js`). There is no backend or external API. The Anomaly Detection insight is a genuine
+> statistical computation over that simulated series (`src/data/analytics.js`); the other insight cards are
+> illustrative copy and are labelled as such. The project demonstrates dashboard architecture, real-time state
+> handling, analytics, and visualization design rather than a connection to a live supply chain system.
 
 ## 📊 Key Features
 
@@ -41,10 +43,8 @@ This project showcases key capabilities for **Client Success AI/Data Engineer** 
 - Cost per Shipment, Warehouse Utilization, Customer Rating
 
 ### **AI-Powered Insights**
-- Demand forecasting with ML predictions
-- Route optimization recommendations
-- Anomaly detection for supply chain disruptions
-- Customer behavior analysis with NLP insights
+- **Anomaly detection (live, computed)** – every refresh, the 24-hour on-time delivery series is scored with z-scores against its own mean and standard deviation. Hours beyond 2σ are flagged, the most extreme hour is described with its magnitude, an anomaly score is derived from the normal tail probability, and the card lists the hours to investigate. The simulated feed injects occasional disruptions so there is something real to find. Implementation and tests: `src/data/analytics.js`.
+- Demand forecasting, route optimization, customer behaviour and cost cards are **illustrative samples** and are tagged `SAMPLE` in the UI; the live card is tagged `LIVE`.
 
 ### **Executive Reporting**
 - Interactive charts (Area, Bar, Pie) for data visualization
