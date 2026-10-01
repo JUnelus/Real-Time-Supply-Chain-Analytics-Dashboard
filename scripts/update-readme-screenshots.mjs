@@ -8,7 +8,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, "..");
 const screenshotsDir = path.join(projectRoot, "docs", "screenshots");
-const previewUrl = "http://127.0.0.1:4173/";
+// vite preview serves the production build under the same base path as GitHub Pages.
+const previewUrl = "http://127.0.0.1:4173/Real-Time-Supply-Chain-Analytics-Dashboard/";
 
 const targets = [
   { navLabel: "Overview", file: "overview.png" },
