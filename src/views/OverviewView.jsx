@@ -8,7 +8,7 @@ export default function OverviewView({ kpiData, kpiChanges, sparkSets, performan
     { title: "On-Time Delivery", value: kpiData.onTimeDelivery, unit: "%", change: kpiChanges.otd, icon: Truck, color: "#00e5ff", key: "otd" },
     { title: "Inventory Turnover", value: kpiData.inventoryTurnover, unit: "x", change: kpiChanges.inv, icon: Package, color: "#00ffaa", key: "inv" },
     { title: "Order Accuracy", value: kpiData.orderAccuracy, unit: "%", change: kpiChanges.oa, icon: CheckCircle, color: "#a855f7", key: "oa" },
-    { title: "Cost per Shipment", value: kpiData.costPerShipment, unit: "$", change: kpiChanges.cps, icon: DollarSign, color: "#fbbf24", key: "cps" },
+    { title: "Cost per Shipment", value: kpiData.costPerShipment, unit: "$", change: kpiChanges.cps, icon: DollarSign, color: "#fbbf24", key: "cps", lowerIsBetter: true },
     { title: "Warehouse Utilization", value: kpiData.warehouseUtilization, unit: "%", change: kpiChanges.wu, icon: Database, color: "#f87171", key: "wu" },
     { title: "Customer Rating", value: kpiData.customerSatisfaction, unit: "/5", change: kpiChanges.cr, icon: Users, color: "#c084fc", key: "cr" },
   ];
@@ -16,7 +16,7 @@ export default function OverviewView({ kpiData, kpiChanges, sparkSets, performan
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px,1fr))", gap: 16 }}>
-        {kpis.map((k) => <KPICard key={k.key} title={k.title} value={k.value} unit={k.unit} change={k.change} icon={k.icon} accentColor={k.color} sparkData={sparkSets[k.key]} />)}
+        {kpis.map((k) => <KPICard key={k.key} title={k.title} value={k.value} unit={k.unit} change={k.change} icon={k.icon} accentColor={k.color} sparkData={sparkSets[k.key]} lowerIsBetter={k.lowerIsBetter} />)}
       </div>
       <div className="grid-main-side">
         <div className="glass rounded-2xl" style={{ padding: 24 }}>

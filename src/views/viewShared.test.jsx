@@ -25,6 +25,15 @@ describe("KPICard", () => {
     expect(screen.queryByText("-2.4%")).not.toBeInTheDocument();
   });
 
+  it("colours a rise red and a fall green when lower is better, keeping the arrow direction", () => {
+    const { rerender } = render(<KPICard {...base} title="Cost per Shipment" change={2.0} lowerIsBetter />);
+    expect(screen.getByText("2.0%")).toHaveStyle({ color: "#f87171" });
+    expect(screen.getByTestId("arrow-up")).toBeInTheDocument();
+    rerender(<KPICard {...base} title="Cost per Shipment" change={-1.5} lowerIsBetter />);
+    expect(screen.getByText("1.5%")).toHaveStyle({ color: "#00ffaa" });
+    expect(screen.getByTestId("arrow-down")).toBeInTheDocument();
+  });
+
   it("only mounts a sparkline when series data is provided", () => {
     const { container, rerender } = render(<KPICard {...base} change={0} />);
     expect(container.querySelector(".recharts-responsive-container")).toBeNull();
