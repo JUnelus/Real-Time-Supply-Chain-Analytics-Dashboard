@@ -32,8 +32,8 @@ This project showcases key capabilities for **Client Success AI/Data Engineer** 
 - **Hosting**: GitHub Pages, deployed automatically from `main`
 
 > **Note on data:** every metric and chart in the dashboard is generated client-side by a simulation layer
-> (`src/data/simulation.js`). There is no backend or external API. The Anomaly Detection insight is a genuine
-> statistical computation over that simulated series (`src/data/analytics.js`); the other insight cards are
+> (`src/data/simulation.js`). There is no backend or external API. The Anomaly Detection and Inventory Prediction
+> insights are genuine computations over that simulated data (`src/data/analytics.js`); the other insight cards are
 > illustrative copy and are labelled as such. The project demonstrates dashboard architecture, real-time state
 > handling, analytics, and visualization design rather than a connection to a live supply chain system.
 
@@ -45,8 +45,9 @@ This project showcases key capabilities for **Client Success AI/Data Engineer** 
 - Cost per Shipment, Warehouse Utilization, Customer Rating
 
 ### **AI-Powered Insights**
-- **Anomaly detection (live, computed)** – every refresh, the 24-hour on-time delivery series is scored with z-scores against its own mean and standard deviation. Hours beyond 2σ are flagged, the most extreme hour is described with its magnitude, an anomaly score is derived from the normal tail probability, and the card lists the hours to investigate. The simulated feed injects occasional disruptions so there is something real to find. Implementation and tests: `src/data/analytics.js`.
-- Demand forecasting, route optimization, customer behaviour and cost cards are **illustrative samples** and are tagged `SAMPLE` in the UI; the live card is tagged `LIVE`.
+- **Anomaly detection (live, computed)** – every refresh, the 24-hour on-time delivery series is scored with z-scores against its own mean and standard deviation. Hours beyond 2σ are flagged, the most extreme hour is described with its magnitude, an anomaly score is derived from the normal tail probability, and the card lists the hours to investigate. The simulated feed injects occasional disruptions so there is something real to find.
+- **Inventory prediction (live, computed)** – each category's daily burn rate is derived from its optimal stock and annual turnover (optimal × turnover ÷ 365). The reorder point is burn rate × (14-day lead time + 7 days safety stock). Categories at or below it are flagged with days of cover and the order quantity needed to return to optimal; the headline figure is the share of categories still above their reorder point. The simulation consumes about a day of stock per refresh and restocks a category when it runs low, so the card cycles through healthy and reorder states over a session.
+- Both live computations live in `src/data/analytics.js` with reference-value and scenario tests. Demand forecasting, route optimization, customer behaviour and cost cards are **illustrative samples** and are tagged `SAMPLE` in the UI; the live cards are tagged `LIVE`.
 
 ### **Executive Reporting**
 - Interactive charts (Area, Bar, Pie) for data visualization
@@ -103,6 +104,13 @@ This project showcases key capabilities for **Client Success AI/Data Engineer** 
 
 ### Alerts
 ![Alerts](docs/screenshots/alerts.png)
+
+### Phone layout (390px)
+On narrow screens the sidebar becomes a horizontal nav bar and every grid stacks to a single column.
+
+<img src="docs/screenshots/mobile-overview.png" alt="Overview at phone width" width="390">
+
+All screenshots are generated from the production build by `npm run screenshots:update`.
 
 ## 🤖 GitHub Actions Automation
 

@@ -63,6 +63,16 @@ async function run() {
       await page.screenshot({ path: outputPath, fullPage: true });
       console.log(`Saved ${outputPath}`);
     }
+
+    // Phone-width capture of the overview, to show the responsive layout.
+    const mobile = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+    await mobile.goto(previewUrl, { waitUntil: "networkidle" });
+    await mobile.waitForSelector("text=On-Time Delivery", { timeout: 15000 });
+    await mobile.waitForTimeout(900);
+    const mobilePath = path.join(screenshotsDir, "mobile-overview.png");
+    await mobile.screenshot({ path: mobilePath, fullPage: false });
+    console.log(`Saved ${mobilePath}`);
+    await mobile.close();
   } finally {
     if (browser) {
       await browser.close();
