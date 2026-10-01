@@ -59,6 +59,15 @@ async function run() {
       await page.locator("button", { hasText: target.navLabel }).first().click();
       await page.waitForTimeout(900);
 
+      // The content pane scrolls internally, so a full-page capture would only
+      // show the first viewport. Grow the viewport to the pane's full height.
+      const contentHeight = await page.evaluate(() => {
+        const pane = document.querySelector(".content");
+        return pane.scrollHeight + pane.getBoundingClientRect().top;
+      });
+      await page.setViewportSize({ width: 1720, height: Math.min(2600, Math.ceil(contentHeight) + 8) });
+      await page.waitForTimeout(500);
+
       const outputPath = path.join(screenshotsDir, target.file);
       await page.screenshot({ path: outputPath, fullPage: true });
       console.log(`Saved ${outputPath}`);
