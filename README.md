@@ -9,6 +9,8 @@
 ![Skills](https://img.shields.io/badge/Skills-Data%20Engineering%2BAI%2FML-purple)
 ![Daily CI](https://github.com/JUnelus/Real-Time-Supply-Chain-Analytics-Dashboard/actions/workflows/daily-dashboard-ci.yml/badge.svg)
 ![Deploy](https://github.com/JUnelus/Real-Time-Supply-Chain-Analytics-Dashboard/actions/workflows/deploy-pages.yml/badge.svg)
+![CodeQL](https://github.com/JUnelus/Real-Time-Supply-Chain-Analytics-Dashboard/actions/workflows/codeql.yml/badge.svg)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 
 ## 🎯 Skills Demonstrated
 
@@ -187,6 +189,7 @@ Real-Time-Supply-Chain-Analytics-Dashboard/
 ├── playwright.config.js                # Playwright config: builds and serves dist/ for e2e
 ├── eslint.config.js                    # ESLint flat config (React hooks + refresh rules)
 ├── package.json                        # Dependencies and scripts
+├── LICENSE                             # MIT
 └── README.md                           # Project documentation
 ```
 
@@ -240,6 +243,11 @@ npm run screenshots:update
 - **Interactive Charts**: Hover effects and tooltips
 - **Loading States**: Visual feedback during processing
 - **Color Coding**: Intuitive status indicators (green/red/yellow)
+
+## 📄 License
+
+Released under the [MIT License](LICENSE). You are free to use, copy, modify and distribute this code, including commercially, as long as the copyright and licence notice are kept.
+
 ---
 
 **Built to demonstrate Client Success AI/Data Engineering skills** • Ready for production deployment
