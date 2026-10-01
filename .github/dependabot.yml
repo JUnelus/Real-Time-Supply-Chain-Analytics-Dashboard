@@ -7,6 +7,11 @@ updates:
     labels:
       - "dependencies"
       - "ci"
+    groups:
+      # One monthly PR for every action bump; they are independent of app code.
+      github-actions:
+        patterns:
+          - "*"
 
   - package-ecosystem: "npm"
     directory: "/"
@@ -16,10 +21,30 @@ updates:
       - "dependencies"
       - "security"
     groups:
-      # playwright and @playwright/test must be bumped together or the
-      # runner and the browser driver fall out of sync.
+      # Groups are matched in order; a dependency joins the first group it fits.
+
+      # playwright and @playwright/test must be bumped together (any version)
+      # or the runner and the browser driver fall out of sync.
       playwright:
         patterns:
           - "playwright"
           - "@playwright/*"
 
+      # Everything that ships in the built dashboard: one PR a week for all
+      # minor and patch bumps. Majors stay as separate PRs for deliberate review.
+      production-minor-patch:
+        dependency-type: "production"
+        update-types:
+          - "minor"
+          - "patch"
+
+      # Build, lint and test tooling: same treatment, separate PR, so a
+      # tooling regression never blocks a runtime update (or vice versa).
+      development-minor-patch:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+        exclude-patterns:
+          - "playwright"
+          - "@playwright/*"

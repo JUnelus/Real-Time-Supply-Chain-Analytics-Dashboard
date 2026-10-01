@@ -122,8 +122,10 @@ This project showcases key capabilities for **Client Success AI/Data Engineer** 
 - Replaces an earlier Qodana workflow that ran the JVM Community linter, which does not inspect JavaScript; the JavaScript linter needs an Ultimate licence
 
 ### Dependabot — `.github/dependabot.yml`
-- Weekly npm dependency updates, monthly GitHub Actions updates
-- `playwright` and `@playwright/test` are grouped so the test runner and browser driver are always bumped together
+- Weekly npm updates, monthly GitHub Actions updates
+- Minor and patch bumps are grouped into at most two weekly PRs: one for production dependencies (what ships in the dashboard) and one for dev tooling (build, lint, test). Major bumps still arrive as individual PRs so they get deliberate review
+- `playwright` and `@playwright/test` form their own group at any version, so the test runner and browser driver are always bumped together
+- All GitHub Actions bumps land in a single monthly PR
 
 ## 💼 Business Value
 
