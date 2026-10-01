@@ -21,6 +21,12 @@ const AlertsView = lazy(() => import("./views/AlertsView"));
 const rnd = (min, max) => Math.random() * (max - min) + min;
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
+// Period-over-period change shown on each KPI card, keyed by sparkline id.
+// Generated once per data refresh (not during render) so trend arrows stay
+// stable between updates instead of flipping on every re-render.
+const KPI_CHANGE_RANGES = { otd: [-2, 4], inv: [-1, 2], oa: [0, 1], cps: [-3, 0], wu: [-1, 2], cr: [0, 0.5] };
+const mkKpiChanges = () => Object.fromEntries(Object.entries(KPI_CHANGE_RANGES).map(([k, [lo, hi]]) => [k, rnd(lo, hi)]));
+
 const BASE_REGIONS = [
   { region: "North America", shipments: 1240, onTime: 96.2, color: "#00e5ff" },
   { region: "Europe", shipments: 980, onTime: 94.7, color: "#a855f7" },
@@ -78,7 +84,15 @@ function Sidebar({ active, setActive, alertCount }) {
   );
 }
 
-function TopBar({ time, isProcessing, onRefresh }) {
+function TopBar({ isProcessing, onRefresh }) {
+  // The clock is local to the top bar so its 1s tick re-renders only this
+  // component rather than the whole dashboard and every chart in it.
+  const [time, setTime] = useState(new Date());
+  useEffect(() => {
+    const tick = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(tick);
+  }, []);
+
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 28px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(7,11,20,0.85)", backdropFilter: "blur(20px)", position: "sticky", top: 0, zIndex: 50 }}>
       <div>
@@ -113,7 +127,6 @@ function LoadingPanel() {
 }
 
 export default function SupplyChainDashboard() {
-  const [time, setTime] = useState(new Date());
   const [activeTab, setActiveTab] = useState("overview");
   const [isProcessing, setIsProcessing] = useState(false);
   const [alerts, setAlerts] = useState([]);
@@ -123,6 +136,7 @@ export default function SupplyChainDashboard() {
   const [regions, setRegions] = useState(BASE_REGIONS);
   const [sparks, setSparks] = useState({});
   const [kpi, setKpi] = useState({ onTimeDelivery: 94.2, inventoryTurnover: 8.7, orderAccuracy: 98.5, costPerShipment: 45.3, warehouseUtilization: 82.3, customerSatisfaction: 4.6 });
+  const [kpiChanges, setKpiChanges] = useState(mkKpiChanges);
 
   const mkSparks = () => {
     const s = (n, lo, hi) => Array.from({ length: n }, () => ({ v: rnd(lo, hi) }));
@@ -173,6 +187,7 @@ export default function SupplyChainDashboard() {
       });
 
       setSparks(mkSparks());
+      setKpiChanges(mkKpiChanges());
       setRegions(BASE_REGIONS.map((r) => ({ ...r, onTime: clamp(r.onTime + rnd(-0.5, 0.5), 80, 99) })));
       if (Math.random() < 0.35) mkAlerts();
       setIsProcessing(false);
@@ -181,12 +196,8 @@ export default function SupplyChainDashboard() {
 
   useEffect(() => {
     init();
-    const tick = setInterval(() => setTime(new Date()), 1000);
     const upd = setInterval(refresh, 3000);
-    return () => {
-      clearInterval(tick);
-      clearInterval(upd);
-    };
+    return () => clearInterval(upd);
   }, [init, refresh]);
 
   const dismissAlert = (id) => setAlerts((p) => p.filter((a) => a.id !== id));
@@ -201,7 +212,7 @@ export default function SupplyChainDashboard() {
   };
 
   const viewByTab = {
-    overview: <OverviewView kpiData={kpi} sparkSets={sparks} performanceData={perf} shipmentData={shipment} regionData={regions} />,
+    overview: <OverviewView kpiData={kpi} kpiChanges={kpiChanges} sparkSets={sparks} performanceData={perf} shipmentData={shipment} regionData={regions} />,
     performance: <PerformanceView performanceData={perf} />,
     inventory: <InventoryView inventoryData={inv} />,
     shipments: <ShipmentsView shipmentData={shipment} regionData={regions} />,
@@ -213,7 +224,7 @@ export default function SupplyChainDashboard() {
     <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "#070b14" }}>
       <Sidebar active={activeTab} setActive={setActiveTab} alertCount={alerts.length} />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <TopBar time={time} isProcessing={isProcessing} onRefresh={refresh} />
+        <TopBar isProcessing={isProcessing} onRefresh={refresh} />
         <div style={{ flex: 1, overflowY: "auto", padding: "28px 28px 48px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 24, fontSize: 13 }}>
             <span style={{ color: "#334155" }}>Dashboard</span>

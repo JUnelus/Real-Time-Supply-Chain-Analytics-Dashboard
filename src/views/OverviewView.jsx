@@ -3,16 +3,14 @@ import { AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContai
 import { Truck, Activity, Globe, Package, CheckCircle, DollarSign, Database, Users } from "lucide-react";
 import { KPICard, SectionHeader, RegionRow, CustomTooltip, SHIPMENT_COLORS } from "./viewShared";
 
-const rnd = (min, max) => Math.random() * (max - min) + min;
-
-export default function OverviewView({ kpiData, sparkSets, performanceData, shipmentData, regionData }) {
+export default function OverviewView({ kpiData, kpiChanges, sparkSets, performanceData, shipmentData, regionData }) {
   const kpis = [
-    { title: "On-Time Delivery", value: kpiData.onTimeDelivery, unit: "%", change: rnd(-2, 4), icon: Truck, color: "#00e5ff", key: "otd" },
-    { title: "Inventory Turnover", value: kpiData.inventoryTurnover, unit: "x", change: rnd(-1, 2), icon: Package, color: "#00ffaa", key: "inv" },
-    { title: "Order Accuracy", value: kpiData.orderAccuracy, unit: "%", change: rnd(0, 1), icon: CheckCircle, color: "#a855f7", key: "oa" },
-    { title: "Cost per Shipment", value: kpiData.costPerShipment, unit: "$", change: rnd(-3, 0), icon: DollarSign, color: "#fbbf24", key: "cps" },
-    { title: "Warehouse Utilization", value: kpiData.warehouseUtilization, unit: "%", change: rnd(-1, 2), icon: Database, color: "#f87171", key: "wu" },
-    { title: "Customer Rating", value: kpiData.customerSatisfaction, unit: "/5", change: rnd(0, 0.5), icon: Users, color: "#c084fc", key: "cr" },
+    { title: "On-Time Delivery", value: kpiData.onTimeDelivery, unit: "%", change: kpiChanges.otd, icon: Truck, color: "#00e5ff", key: "otd" },
+    { title: "Inventory Turnover", value: kpiData.inventoryTurnover, unit: "x", change: kpiChanges.inv, icon: Package, color: "#00ffaa", key: "inv" },
+    { title: "Order Accuracy", value: kpiData.orderAccuracy, unit: "%", change: kpiChanges.oa, icon: CheckCircle, color: "#a855f7", key: "oa" },
+    { title: "Cost per Shipment", value: kpiData.costPerShipment, unit: "$", change: kpiChanges.cps, icon: DollarSign, color: "#fbbf24", key: "cps" },
+    { title: "Warehouse Utilization", value: kpiData.warehouseUtilization, unit: "%", change: kpiChanges.wu, icon: Database, color: "#f87171", key: "wu" },
+    { title: "Customer Rating", value: kpiData.customerSatisfaction, unit: "/5", change: kpiChanges.cr, icon: Users, color: "#c084fc", key: "cr" },
   ];
 
   return (
