@@ -106,8 +106,9 @@ This project showcases key capabilities for **Client Success AI/Data Engineer** 
 
 ### Daily Dashboard CI — `.github/workflows/daily-dashboard-ci.yml`
 - Runs on every push, daily at `09:00 UTC`, and on demand via `workflow_dispatch`
-- Steps: `npm ci`, `npm audit --omit=dev --audit-level=moderate` (production dependencies only), `npm run lint`, `npm run build`
+- Steps: `npm ci`, `npm audit --omit=dev --audit-level=moderate` (production dependencies only), `npm run lint`, `npm test`, `npm run build`, then `npm run test:e2e` against the built bundle
 - Dev-only tooling (ESLint, Vite, Playwright) is excluded from the audit gate so advisories against build helpers do not fail the scheduled run; Dependabot still opens PRs for them
+- On an end-to-end failure the Playwright HTML report is uploaded as a workflow artifact
 
 ### Deploy to GitHub Pages — `.github/workflows/deploy-pages.yml`
 - Runs on every push to `main` and on demand
@@ -116,6 +117,7 @@ This project showcases key capabilities for **Client Success AI/Data Engineer** 
 
 ### Dependabot — `.github/dependabot.yml`
 - Weekly npm dependency updates, monthly GitHub Actions updates
+- `playwright` and `@playwright/test` are grouped so the test runner and browser driver are always bumped together
 
 ## 💼 Business Value
 
@@ -147,13 +149,21 @@ Real-Time-Supply-Chain-Analytics-Dashboard/
 │       └── qodana_code_quality.yml     # JetBrains Qodana static analysis
 ├── docs/
 │   └── screenshots/                    # README screenshots, one per dashboard tab
+├── e2e/
+│   └── smoke.spec.js                   # Playwright smoke test against the production build
 ├── public/                             # Static assets copied as-is into the build
 ├── scripts/
 │   └── update-readme-screenshots.mjs   # Playwright script that regenerates screenshots
 ├── src/
-│   ├── App.jsx                         # Shell: sidebar, top bar, data simulation, tab routing
+│   ├── App.jsx                         # Shell: sidebar, top bar, refresh timer, tab routing
+│   ├── App.test.jsx                    # Integration tests: navigation, alert count, dismissal
 │   ├── main.jsx                        # React entry point
 │   ├── index.css                       # Global styles and Tailwind import
+│   ├── data/
+│   │   ├── simulation.js               # Pure data generators behind every metric and alert
+│   │   └── simulation.test.js          # Bounds, window rollover, alert generation
+│   ├── test/
+│   │   └── setup.js                    # Vitest setup: jest-dom matchers, ResizeObserver stub
 │   └── views/
 │       ├── OverviewView.jsx            # KPI cards, performance trend, shipment status, regions
 │       ├── PerformanceView.jsx         # 24-hour performance analytics
@@ -161,9 +171,12 @@ Real-Time-Supply-Chain-Analytics-Dashboard/
 │       ├── ShipmentsView.jsx           # Shipment status and regional breakdown
 │       ├── AIView.jsx                  # AI insight cards and model metrics
 │       ├── AlertsView.jsx              # Priority-classified alerts with dismissal
-│       └── viewShared.jsx              # Shared cards, tooltip, section headers
+│       ├── AlertsView.test.jsx         # Severity tiles, empty state, dismissal
+│       ├── viewShared.jsx              # Shared cards, tooltip, section headers
+│       └── viewShared.test.jsx         # KPICard, AlertItem, CustomTooltip, RegionRow
 ├── index.html                          # HTML template (Vite entry)
-├── vite.config.js                      # Vite config; sets the Pages base path for builds
+├── vite.config.js                      # Vite config: Pages base path for builds, Vitest settings
+├── playwright.config.js                # Playwright config: builds and serves dist/ for e2e
 ├── eslint.config.js                    # ESLint flat config (React hooks + refresh rules)
 ├── package.json                        # Dependencies and scripts
 └── README.md                           # Project documentation
@@ -184,7 +197,23 @@ Real-Time-Supply-Chain-Analytics-Dashboard/
 - `npm run build` - Build for production (output in `dist/`, base path set for GitHub Pages)
 - `npm run preview` - Serve the production build locally at `http://127.0.0.1:4173/Real-Time-Supply-Chain-Analytics-Dashboard/`
 - `npm run lint` - Run ESLint
+- `npm test` - Run the Vitest unit and component suite once
+- `npm run test:watch` - Run Vitest in watch mode
+- `npm run test:e2e` - Build, serve, and run the Playwright smoke test against the production bundle
 - `npm run screenshots:update` - Rebuild and capture fresh screenshots for each dashboard tab
+
+### Testing
+
+Two layers, both run in CI on every push and on the daily schedule:
+
+- **Unit and component tests** (Vitest + React Testing Library, jsdom) cover the simulation layer in `src/data/simulation.js` (KPI drift and clamping, the 24-hour window rollover, alert generation bounds), the shared view components (KPI card formatting and trend colouring, alert dismissal, chart tooltip), the alerts view, and the app shell (sidebar navigation, lazy view loading, live alert count).
+- **End-to-end smoke test** (Playwright, Chromium) builds the real production bundle, serves it under the GitHub Pages base path, and checks that every view opens, that no page or console errors occur, that dismissing an alert updates the sidebar badge, and that KPI trend badges stay stable between data refreshes.
+
+```bash
+npm test                              # unit + component
+npx playwright install chromium       # first time only
+npm run test:e2e                      # end-to-end
+```
 
 ### Refresh README Screenshots
 
