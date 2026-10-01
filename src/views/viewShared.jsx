@@ -10,6 +10,13 @@ import {
 
 export const SHIPMENT_COLORS = ["#00ffaa", "#00e5ff", "#fbbf24", "#f87171"];
 
+// Whether an AI insight card is computed from the live series or is
+// illustrative sample copy. Keeps the distinction visible on the card itself.
+const SOURCE_CFG = {
+  live: { label: "LIVE", color: "#00ffaa", title: "Computed from the dashboard's live 24-hour series" },
+  sample: { label: "SAMPLE", color: "#64748b", title: "Illustrative example - not computed from data" },
+};
+
 const ALERT_CFG = {
   error: { border: "#f87171", bg: "rgba(248,113,113,0.08)", label: "Critical" },
   warning: { border: "#fbbf24", bg: "rgba(251,191,36,0.08)", label: "Warning" },
@@ -138,16 +145,30 @@ export function AIInsightCard({ insight }) {
             <Cpu size={14} style={{ color: "#a855f7" }} />
           </div>
           <span style={{ fontWeight: 600, fontSize: 14, color: "#f1f5f9" }}>{insight.title}</span>
+          {insight.source && (
+            <span data-testid="insight-source" title={SOURCE_CFG[insight.source].title} style={{ fontSize: 9, fontWeight: 700, letterSpacing: 1, padding: "2px 7px", borderRadius: 20, background: SOURCE_CFG[insight.source].color + "20", color: SOURCE_CFG[insight.source].color, border: "1px solid " + SOURCE_CFG[insight.source].color + "40" }}>
+              {SOURCE_CFG[insight.source].label}
+            </span>
+          )}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(168,85,247,0.15)", padding: "3px 10px", borderRadius: 20 }}>
           <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#a855f7" }} />
-          <span style={{ fontSize: 11, color: "#c4b5fd" }}>{insight.confidence}% confidence</span>
+          <span style={{ fontSize: 11, color: "#c4b5fd" }}>{insight.confidence}% {insight.confidenceLabel || "confidence"}</span>
         </div>
       </div>
       <div className="progress-bar" style={{ marginBottom: 10 }}>
         <div className="progress-fill" style={{ width: insight.confidence + "%", background: "linear-gradient(90deg, #a855f780, #a855f7)" }} />
       </div>
       <p style={{ color: "#94a3b8", fontSize: 13, marginBottom: 10, lineHeight: 1.6 }}>{insight.description}</p>
+      {insight.stats && insight.stats.length > 0 && (
+        <div data-testid="insight-stats" style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+          {insight.stats.map((s) => (
+            <span key={s.label} style={{ fontSize: 11, padding: "2px 8px", borderRadius: 6, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "#94a3b8" }}>
+              {s.label} <span style={{ color: "#e2e8f0", fontWeight: 600, fontFamily: "monospace" }}>{s.value}</span>
+            </span>
+          ))}
+        </div>
+      )}
       <div style={{ background: "rgba(0,229,255,0.08)", border: "1px solid rgba(0,229,255,0.15)", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "#7dd3fc", display: "flex", alignItems: "center", gap: 8 }}>
         <Zap size={12} style={{ color: "#00e5ff", flexShrink: 0 }} />
         {insight.action}

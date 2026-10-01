@@ -73,7 +73,19 @@ export const mkSparks = () =>
 
 export const PERF_HOURS = 24;
 
-const mkPerfPoint = (hour) => ({ hour, onTime: rnd(88, 100), accuracy: rnd(95, 100), efficiency: rnd(75, 95) });
+// Roughly one hour in twelve suffers a disruption (carrier delay, weather,
+// capacity squeeze) that pulls on-time delivery well below its normal
+// 88-100% band. This gives the live anomaly detector in analytics.js real
+// outliers to find rather than uniform noise.
+export const DISRUPTION_RATE = 0.08;
+export const DISRUPTION_DROP = [8, 16];
+export const ON_TIME_RANGE = [88, 100];
+
+const mkPerfPoint = (hour) => {
+  const disrupted = Math.random() < DISRUPTION_RATE;
+  const onTime = rnd(...ON_TIME_RANGE) - (disrupted ? rnd(...DISRUPTION_DROP) : 0);
+  return { hour, onTime, accuracy: rnd(95, 100), efficiency: rnd(75, 95), disrupted };
+};
 
 export const mkPerformance = () => Array.from({ length: PERF_HOURS }, (_, i) => mkPerfPoint(i));
 

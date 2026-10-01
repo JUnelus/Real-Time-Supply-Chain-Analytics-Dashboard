@@ -9,6 +9,9 @@ import {
   SPARK_POINTS,
   mkSparks,
   PERF_HOURS,
+  DISRUPTION_RATE,
+  DISRUPTION_DROP,
+  ON_TIME_RANGE,
   mkPerformance,
   advancePerformance,
   INVENTORY_CATEGORIES,
@@ -82,8 +85,10 @@ describe("performance window", () => {
     expect(perf).toHaveLength(PERF_HOURS);
     expect(perf.map((p) => p.hour)).toEqual(Array.from({ length: 24 }, (_, i) => i));
     for (const p of perf) {
-      expect(p.onTime).toBeGreaterThanOrEqual(88);
-      expect(p.onTime).toBeLessThanOrEqual(100);
+      // Normal band is 88-100; a disrupted hour may drop by up to DISRUPTION_DROP[1].
+      expect(p.onTime).toBeGreaterThanOrEqual(ON_TIME_RANGE[0] - DISRUPTION_DROP[1]);
+      expect(p.onTime).toBeLessThanOrEqual(ON_TIME_RANGE[1]);
+      expect(typeof p.disrupted).toBe("boolean");
       expect(p.accuracy).toBeGreaterThanOrEqual(95);
       expect(p.efficiency).toBeLessThanOrEqual(95);
     }
@@ -102,6 +107,20 @@ describe("performance window", () => {
     for (let i = 0; i < 5; i++) perf = advancePerformance(perf);
     expect(perf[perf.length - 1].hour).toBe(4);
     expect(perf[0].hour).toBe(5);
+  });
+
+  it("marks an hour as disrupted and drops its on-time rate when the roll is low", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0); // below DISRUPTION_RATE, and rnd() returns each range's minimum
+    const [p] = mkPerformance();
+    expect(p.disrupted).toBe(true);
+    expect(p.onTime).toBe(ON_TIME_RANGE[0] - DISRUPTION_DROP[0]);
+  });
+
+  it("leaves an hour undisturbed when the roll is above the disruption rate", () => {
+    vi.spyOn(Math, "random").mockReturnValue(DISRUPTION_RATE + 0.4);
+    const [p] = mkPerformance();
+    expect(p.disrupted).toBe(false);
+    expect(p.onTime).toBeGreaterThanOrEqual(ON_TIME_RANGE[0]);
   });
 
   it("re-seeds a full window when given an empty one", () => {

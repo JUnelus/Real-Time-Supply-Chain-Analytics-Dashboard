@@ -183,7 +183,7 @@ export default function SupplyChainDashboard() {
     performance: <PerformanceView performanceData={perf} />,
     inventory: <InventoryView inventoryData={inv} />,
     shipments: <ShipmentsView shipmentData={SHIPMENT_STATUS} regionData={regions} />,
-    ai: <AIView />,
+    ai: <AIView performanceData={perf} />,
     alerts: <AlertsView alerts={alerts} onDismiss={dismissAlert} />,
   };
 
