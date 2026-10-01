@@ -11,4 +11,12 @@ export default defineConfig(({ command, isPreview }) => ({
   // Production builds and `vite preview` use the Pages base path; `vite dev` stays at '/'.
   base: command === 'build' || isPreview ? REPO_BASE : '/',
   plugins: [react(), tailwindcss()],
+  test: {
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.js'],
+    include: ['src/**/*.test.{js,jsx}'],
+    // Playwright owns e2e/; keep Vitest from picking those specs up.
+    exclude: ['node_modules/**', 'dist/**', 'e2e/**'],
+    css: false,
+  },
 }))

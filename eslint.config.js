@@ -27,4 +27,15 @@ export default defineConfig([
       'react-hooks/set-state-in-effect': 'off',
     },
   },
+  {
+    // Node-side tooling: the screenshot script, the Playwright config and
+    // the e2e specs (which also touch the DOM inside page.evaluate).
+    files: ['scripts/**/*.{js,mjs}', 'playwright.config.js', 'e2e/**/*.js'],
+    extends: [js.configs.recommended],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: { ...globals.node, ...globals.browser },
+    },
+  },
 ])
