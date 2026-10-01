@@ -7,6 +7,10 @@ on:
     - cron: "0 9 * * *"
   workflow_dispatch:
 
+# Nothing in this workflow writes to the repository; a read-only token is enough.
+permissions:
+  contents: read
+
 jobs:
   lint-and-build:
     runs-on: ubuntu-latest
