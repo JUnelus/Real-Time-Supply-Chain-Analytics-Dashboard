@@ -44,7 +44,7 @@ export function KPICard({ title, value, unit, change, icon, accentColor, sparkDa
         <div style={{ width: 36, height: 36, borderRadius: 10, background: accentColor + "25", border: "1px solid " + accentColor + "45", display: "flex", alignItems: "center", justifyContent: "center" }}>
           {icon ? React.createElement(icon, { size: 16, style: { color: accentColor } }) : null}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: positive ? "#00ffaa" : "#f87171", background: positive ? "rgba(0,255,170,0.1)" : "rgba(248,113,113,0.1)", padding: "2px 8px", borderRadius: 20 }}>
+        <div data-testid="kpi-change" style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: positive ? "#00ffaa" : "#f87171", background: positive ? "rgba(0,255,170,0.1)" : "rgba(248,113,113,0.1)", padding: "2px 8px", borderRadius: 20 }}>
           {positive ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
           {Math.abs(change).toFixed(1)}%
         </div>

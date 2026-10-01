@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback, lazy, Suspense } from "react";
+import React, { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react";
 import {
   Home,
   Activity,
@@ -10,6 +10,19 @@ import {
   ChevronRight,
   GitBranch,
 } from "lucide-react";
+import {
+  INITIAL_KPI,
+  stepKpi,
+  mkKpiChanges,
+  mkSparks,
+  mkPerformance,
+  advancePerformance,
+  mkInventory,
+  SHIPMENT_STATUS,
+  BASE_REGIONS,
+  stepRegions,
+  mkAlerts,
+} from "./data/simulation";
 
 const OverviewView = lazy(() => import("./views/OverviewView"));
 const PerformanceView = lazy(() => import("./views/PerformanceView"));
@@ -18,22 +31,10 @@ const ShipmentsView = lazy(() => import("./views/ShipmentsView"));
 const AIView = lazy(() => import("./views/AIView"));
 const AlertsView = lazy(() => import("./views/AlertsView"));
 
-const rnd = (min, max) => Math.random() * (max - min) + min;
-const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
-
-// Period-over-period change shown on each KPI card, keyed by sparkline id.
-// Generated once per data refresh (not during render) so trend arrows stay
-// stable between updates instead of flipping on every re-render.
-const KPI_CHANGE_RANGES = { otd: [-2, 4], inv: [-1, 2], oa: [0, 1], cps: [-3, 0], wu: [-1, 2], cr: [0, 0.5] };
-const mkKpiChanges = () => Object.fromEntries(Object.entries(KPI_CHANGE_RANGES).map(([k, [lo, hi]]) => [k, rnd(lo, hi)]));
-
-const BASE_REGIONS = [
-  { region: "North America", shipments: 1240, onTime: 96.2, color: "#00e5ff" },
-  { region: "Europe", shipments: 980, onTime: 94.7, color: "#a855f7" },
-  { region: "Asia Pacific", shipments: 1580, onTime: 91.3, color: "#00ffaa" },
-  { region: "Latin America", shipments: 420, onTime: 88.5, color: "#fbbf24" },
-  { region: "Middle East", shipments: 310, onTime: 90.1, color: "#f87171" },
-];
+// How often simulated data refreshes, and how long the "Refreshing..." state
+// is shown before the new values land.
+export const REFRESH_INTERVAL_MS = 3000;
+export const REFRESH_LATENCY_MS = 800;
 
 const NAV = [
   { id: "overview", label: "Overview", icon: Home },
@@ -43,6 +44,15 @@ const NAV = [
   { id: "ai", label: "AI Insights", icon: Cpu },
   { id: "alerts", label: "Alerts", icon: Bell },
 ];
+
+const TITLES = {
+  overview: "Overview Dashboard",
+  performance: "Performance Analytics",
+  inventory: "Inventory Management",
+  shipments: "Shipment Tracking",
+  ai: "AI-Powered Insights",
+  alerts: "Alerts & Notifications",
+};
 
 function Sidebar({ active, setActive, alertCount }) {
   return (
@@ -63,11 +73,11 @@ function Sidebar({ active, setActive, alertCount }) {
         {NAV.map((item) => {
           const on = active === item.id;
           return (
-            <button key={item.id} onClick={() => setActive(item.id)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 10px", borderRadius: 10, border: "none", cursor: "pointer", background: on ? "linear-gradient(135deg, rgba(0,229,255,0.15), rgba(168,85,247,0.1))" : "transparent", color: on ? "#f1f5f9" : "#64748b", fontSize: 13, fontWeight: on ? 600 : 400, marginBottom: 2, borderLeft: on ? "2px solid #00e5ff" : "2px solid transparent", transition: "all 0.2s" }}>
+            <button key={item.id} onClick={() => setActive(item.id)} aria-current={on ? "page" : undefined} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 10px", borderRadius: 10, border: "none", cursor: "pointer", background: on ? "linear-gradient(135deg, rgba(0,229,255,0.15), rgba(168,85,247,0.1))" : "transparent", color: on ? "#f1f5f9" : "#64748b", fontSize: 13, fontWeight: on ? 600 : 400, marginBottom: 2, borderLeft: on ? "2px solid #00e5ff" : "2px solid transparent", transition: "all 0.2s" }}>
               <item.icon size={16} style={{ color: on ? "#00e5ff" : "#475569" }} />
               {item.label}
               {item.id === "alerts" && alertCount > 0 && (
-                <span style={{ marginLeft: "auto", fontSize: 10, background: "#ef4444", color: "white", borderRadius: 20, padding: "1px 6px", fontWeight: 700 }}>{alertCount}</span>
+                <span data-testid="alert-count" style={{ marginLeft: "auto", fontSize: 10, background: "#ef4444", color: "white", borderRadius: 20, padding: "1px 6px", fontWeight: 700 }}>{alertCount}</span>
               )}
               {on && <ChevronRight size={12} style={{ marginLeft: "auto", color: "#00e5ff" }} />}
             </button>
@@ -110,7 +120,7 @@ function TopBar({ isProcessing, onRefresh }) {
           <RefreshCw size={12} /> Refresh
         </button>
         <div style={{ textAlign: "right" }}>
-          <div style={{ fontFamily: "monospace", fontSize: 16, color: "#00e5ff", fontWeight: 600 }}>{time.toLocaleTimeString()}</div>
+          <div data-testid="clock" style={{ fontFamily: "monospace", fontSize: 16, color: "#00e5ff", fontWeight: 600 }}>{time.toLocaleTimeString()}</div>
           <div style={{ fontSize: 11, color: "#334155" }}>{time.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</div>
         </div>
       </div>
@@ -129,93 +139,50 @@ function LoadingPanel() {
 export default function SupplyChainDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [alerts, setAlerts] = useState([]);
-  const [perf, setPerf] = useState([]);
-  const [inv, setInv] = useState([]);
-  const [shipment, setShipment] = useState([]);
+
+  // All simulated data is seeded lazily on first render so there is no empty
+  // first paint, then advanced on a fixed interval by `refresh`.
+  const [alerts, setAlerts] = useState(() => mkAlerts());
+  const [perf, setPerf] = useState(mkPerformance);
+  const [inv] = useState(mkInventory);
   const [regions, setRegions] = useState(BASE_REGIONS);
-  const [sparks, setSparks] = useState({});
-  const [kpi, setKpi] = useState({ onTimeDelivery: 94.2, inventoryTurnover: 8.7, orderAccuracy: 98.5, costPerShipment: 45.3, warehouseUtilization: 82.3, customerSatisfaction: 4.6 });
+  const [sparks, setSparks] = useState(mkSparks);
+  const [kpi, setKpi] = useState(INITIAL_KPI);
+  // Generated once per refresh (not during render) so the trend arrows on the
+  // KPI cards stay stable between data updates.
   const [kpiChanges, setKpiChanges] = useState(mkKpiChanges);
 
-  const mkSparks = () => {
-    const s = (n, lo, hi) => Array.from({ length: n }, () => ({ v: rnd(lo, hi) }));
-    return { otd: s(10, 88, 98), inv: s(10, 6, 11), oa: s(10, 96, 99.9), cps: s(10, 35, 55), wu: s(10, 70, 92), cr: s(10, 4.1, 5.0) };
-  };
-
-  const mkAlerts = useCallback(() => {
-    const pool = [
-      { type: "error", message: "Shipment delay on Route I-90 - carrier ETA +4h", priority: "High" },
-      { type: "warning", message: "Electronics inventory below reorder point (142 units)", priority: "Medium" },
-      { type: "warning", message: "Peak demand approaching - scale warehouse resources", priority: "High" },
-      { type: "info", message: "AI model recommends 15% improvement in delivery routes", priority: "Low" },
-      { type: "success", message: "Customer satisfaction increased 0.3 pts this week", priority: "Low" },
-      { type: "error", message: "West Coast distribution center at 94% capacity", priority: "High" },
-    ];
-
-    setAlerts(
-      pool
-        .slice(0, Math.floor(rnd(2, pool.length + 1)))
-        .map((a) => ({ ...a, id: Date.now() + Math.random(), timestamp: new Date().toLocaleTimeString() }))
-    );
-  }, []);
-
-  const init = useCallback(() => {
-    setPerf(Array.from({ length: 24 }, (_, i) => ({ hour: i, onTime: rnd(88, 100), accuracy: rnd(95, 100), efficiency: rnd(75, 95) })));
-    setInv(["Electronics", "Clothing", "Home & Garden", "Sports", "Books", "Automotive"].map((c) => ({ category: c, current: Math.floor(rnd(200, 1200)), optimal: Math.floor(rnd(400, 1200)), turnover: rnd(2, 12).toFixed(1) })));
-    setShipment([{ name: "Delivered", value: 65 }, { name: "In Transit", value: 25 }, { name: "Processing", value: 8 }, { name: "Delayed", value: 2 }]);
-    setSparks(mkSparks());
-    mkAlerts();
-  }, [mkAlerts]);
+  const pendingRefresh = useRef(null);
 
   const refresh = useCallback(() => {
     setIsProcessing(true);
-    setTimeout(() => {
-      setKpi((p) => ({
-        onTimeDelivery: clamp(p.onTimeDelivery + rnd(-1, 1), 85, 99),
-        inventoryTurnover: clamp(p.inventoryTurnover + rnd(-0.3, 0.3), 5, 12),
-        orderAccuracy: clamp(p.orderAccuracy + rnd(-0.5, 0.5), 95, 99.9),
-        costPerShipment: clamp(p.costPerShipment + rnd(-2, 2), 35, 55),
-        warehouseUtilization: clamp(p.warehouseUtilization + rnd(-1.5, 1.5), 70, 95),
-        customerSatisfaction: clamp(p.customerSatisfaction + rnd(-0.1, 0.1), 4.0, 5.0),
-      }));
-
-      setPerf((p) => {
-        const n = [...p.slice(1)];
-        n.push({ hour: (p[p.length - 1].hour + 1) % 24, onTime: rnd(88, 100), accuracy: rnd(95, 100), efficiency: rnd(75, 95) });
-        return n;
-      });
-
+    clearTimeout(pendingRefresh.current);
+    pendingRefresh.current = setTimeout(() => {
+      setKpi(stepKpi);
+      setPerf(advancePerformance);
       setSparks(mkSparks());
       setKpiChanges(mkKpiChanges());
-      setRegions(BASE_REGIONS.map((r) => ({ ...r, onTime: clamp(r.onTime + rnd(-0.5, 0.5), 80, 99) })));
-      if (Math.random() < 0.35) mkAlerts();
+      setRegions(stepRegions());
+      if (Math.random() < 0.35) setAlerts(mkAlerts());
       setIsProcessing(false);
-    }, 800);
-  }, [mkAlerts]);
+    }, REFRESH_LATENCY_MS);
+  }, []);
 
   useEffect(() => {
-    init();
-    const upd = setInterval(refresh, 3000);
-    return () => clearInterval(upd);
-  }, [init, refresh]);
+    const upd = setInterval(refresh, REFRESH_INTERVAL_MS);
+    return () => {
+      clearInterval(upd);
+      clearTimeout(pendingRefresh.current);
+    };
+  }, [refresh]);
 
   const dismissAlert = (id) => setAlerts((p) => p.filter((a) => a.id !== id));
 
-  const titles = {
-    overview: "Overview Dashboard",
-    performance: "Performance Analytics",
-    inventory: "Inventory Management",
-    shipments: "Shipment Tracking",
-    ai: "AI-Powered Insights",
-    alerts: "Alerts & Notifications",
-  };
-
   const viewByTab = {
-    overview: <OverviewView kpiData={kpi} kpiChanges={kpiChanges} sparkSets={sparks} performanceData={perf} shipmentData={shipment} regionData={regions} />,
+    overview: <OverviewView kpiData={kpi} kpiChanges={kpiChanges} sparkSets={sparks} performanceData={perf} shipmentData={SHIPMENT_STATUS} regionData={regions} />,
     performance: <PerformanceView performanceData={perf} />,
     inventory: <InventoryView inventoryData={inv} />,
-    shipments: <ShipmentsView shipmentData={shipment} regionData={regions} />,
+    shipments: <ShipmentsView shipmentData={SHIPMENT_STATUS} regionData={regions} />,
     ai: <AIView />,
     alerts: <AlertsView alerts={alerts} onDismiss={dismissAlert} />,
   };
@@ -229,7 +196,7 @@ export default function SupplyChainDashboard() {
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 24, fontSize: 13 }}>
             <span style={{ color: "#334155" }}>Dashboard</span>
             <ChevronRight size={14} style={{ color: "#1e293b" }} />
-            <span style={{ color: "#94a3b8" }}>{titles[activeTab]}</span>
+            <span data-testid="view-title" style={{ color: "#94a3b8" }}>{TITLES[activeTab]}</span>
           </div>
 
           <Suspense fallback={<LoadingPanel />}>
