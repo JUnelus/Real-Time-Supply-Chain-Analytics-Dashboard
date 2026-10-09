@@ -9,6 +9,8 @@
 ![Skills](https://img.shields.io/badge/Skills-Data%20Engineering%2BAI%2FML-purple)
 ![Daily CI](https://github.com/JUnelus/Real-Time-Supply-Chain-Analytics-Dashboard/actions/workflows/daily-dashboard-ci.yml/badge.svg)
 ![Deploy](https://github.com/JUnelus/Real-Time-Supply-Chain-Analytics-Dashboard/actions/workflows/deploy-pages.yml/badge.svg)
+![CodeQL](https://github.com/JUnelus/Real-Time-Supply-Chain-Analytics-Dashboard/actions/workflows/codeql.yml/badge.svg)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 
 ## 🎯 Skills Demonstrated
 
@@ -29,9 +31,11 @@ This project showcases key capabilities for **Client Success AI/Data Engineer** 
 - **Icons**: Lucide React for professional UI elements
 - **Hosting**: GitHub Pages, deployed automatically from `main`
 
-> **Note on data:** every metric, chart, and insight in the dashboard is generated client-side by a simulation layer.
-> There is no backend or external API. The project demonstrates dashboard architecture, real-time state handling,
-> and visualization design rather than a connection to a live supply chain system.
+> **Note on data:** every metric and chart in the dashboard is generated client-side by a simulation layer
+> (`src/data/simulation.js`). There is no backend or external API. The Demand Forecasting, Anomaly Detection and
+> Inventory Prediction insights are genuine computations over that simulated data (`src/data/analytics.js`); the
+> other insight cards are illustrative copy and are labelled as such. The project demonstrates dashboard architecture, real-time state
+> handling, analytics, and visualization design rather than a connection to a live supply chain system.
 
 ## 📊 Key Features
 
@@ -41,10 +45,10 @@ This project showcases key capabilities for **Client Success AI/Data Engineer** 
 - Cost per Shipment, Warehouse Utilization, Customer Rating
 
 ### **AI-Powered Insights**
-- Demand forecasting with ML predictions
-- Route optimization recommendations
-- Anomaly detection for supply chain disruptions
-- Customer behavior analysis with NLP insights
+- **Demand forecasting (live, computed)** – the hourly order-volume series is deseasonalised with a known intraday profile (quiet overnight, early-afternoon peak), an ordinary-least-squares line is fitted to the underlying level to measure drift per hour, and the level is projected six hours ahead and re-shaped by the profile. The card reports the trend, the fit quality (R²), the next six hours' volume against the last six, and the forecast peak hour, and recommends adding capacity, easing off, or holding staffing. The Performance view charts the actual hours and the forecast hours side by side.
+- **Anomaly detection (live, computed)** – every refresh, the 24-hour on-time delivery series is scored with z-scores against its own mean and standard deviation. Hours beyond 2σ are flagged, the most extreme hour is described with its magnitude, an anomaly score is derived from the normal tail probability, and the card lists the hours to investigate. The simulated feed injects occasional disruptions so there is something real to find.
+- **Inventory prediction (live, computed)** – each category's daily burn rate is derived from its optimal stock and annual turnover (optimal × turnover ÷ 365). The reorder point is burn rate × (14-day lead time + 7 days safety stock). Categories at or below it are flagged with days of cover and the order quantity needed to return to optimal; the headline figure is the share of categories still above their reorder point. The simulation consumes about a day of stock per refresh and restocks a category when it runs low, so the card cycles through healthy and reorder states over a session.
+- All three live computations live in `src/data/analytics.js` with reference-value and scenario tests. The route optimization, customer behaviour and cost cards are **illustrative samples** and are tagged `SAMPLE` in the UI; the live cards are tagged `LIVE`.
 
 ### **Executive Reporting**
 - Interactive charts (Area, Bar, Pie) for data visualization
@@ -54,7 +58,7 @@ This project showcases key capabilities for **Client Success AI/Data Engineer** 
 
 ## 🚀 Quick Start
 
-**Prerequisites**: Node.js 20.19+ (or 22.12+) and npm. Vite 7 does not support older Node releases.
+**Prerequisites**: Node.js 22.22+ (see `.nvmrc`) and npm. Vite 7 needs 22.12+, and the jsdom test environment needs 22.22+; Node 20 reached end of life in April 2026 and is not supported.
 
 1. **Clone the repository**:
    ```bash
@@ -102,6 +106,13 @@ This project showcases key capabilities for **Client Success AI/Data Engineer** 
 ### Alerts
 ![Alerts](docs/screenshots/alerts.png)
 
+### Phone layout (390px)
+On narrow screens the sidebar becomes a horizontal nav bar and every grid stacks to a single column.
+
+<img src="docs/screenshots/mobile-overview.png" alt="Overview at phone width" width="390">
+
+All screenshots are generated from the production build by `npm run screenshots:update`.
+
 ## 🤖 GitHub Actions Automation
 
 ### Daily Dashboard CI — `.github/workflows/daily-dashboard-ci.yml`
@@ -115,9 +126,17 @@ This project showcases key capabilities for **Client Success AI/Data Engineer** 
 - Builds the production bundle and publishes `dist/` to GitHub Pages
 - Live at https://junelus.github.io/Real-Time-Supply-Chain-Analytics-Dashboard/
 
+### CodeQL — `.github/workflows/codeql.yml`
+- Runs on pushes and pull requests to `main`, weekly on Mondays, and on demand
+- Analyzes the JavaScript/React source and the GitHub Actions workflows with the `security-and-quality` query suite
+- Findings appear under **Security → Code scanning** and as pull request annotations
+- Replaces an earlier Qodana workflow that ran the JVM Community linter, which does not inspect JavaScript; the JavaScript linter needs an Ultimate licence
+
 ### Dependabot — `.github/dependabot.yml`
-- Weekly npm dependency updates, monthly GitHub Actions updates
-- `playwright` and `@playwright/test` are grouped so the test runner and browser driver are always bumped together
+- Weekly npm updates, monthly GitHub Actions updates
+- Minor and patch bumps are grouped into at most two weekly PRs: one for production dependencies (what ships in the dashboard) and one for dev tooling (build, lint, test). Major bumps still arrive as individual PRs so they get deliberate review
+- `playwright` and `@playwright/test` form their own group at any version, so the test runner and browser driver are always bumped together
+- All GitHub Actions bumps land in a single monthly PR
 
 ## 💼 Business Value
 
@@ -146,7 +165,7 @@ Real-Time-Supply-Chain-Analytics-Dashboard/
 │   └── workflows/
 │       ├── daily-dashboard-ci.yml      # Audit, lint, build (push + daily schedule)
 │       ├── deploy-pages.yml            # Build and publish to GitHub Pages
-│       └── qodana_code_quality.yml     # JetBrains Qodana static analysis
+│       └── codeql.yml                  # CodeQL static analysis (JavaScript + workflows)
 ├── docs/
 │   └── screenshots/                    # README screenshots, one per dashboard tab
 ├── e2e/
@@ -179,6 +198,7 @@ Real-Time-Supply-Chain-Analytics-Dashboard/
 ├── playwright.config.js                # Playwright config: builds and serves dist/ for e2e
 ├── eslint.config.js                    # ESLint flat config (React hooks + refresh rules)
 ├── package.json                        # Dependencies and scripts
+├── LICENSE                             # MIT
 └── README.md                           # Project documentation
 ```
 
@@ -228,10 +248,15 @@ npm run screenshots:update
 ## 🎨 UI/UX Features
 
 - **Dark Theme**: Professional gradient background
-- **Responsive Grid**: KPI and insight cards reflow with viewport width
+- **Responsive Layout**: three breakpoints - full 220px sidebar with two-column grids on desktop, a 72px icon rail with single-column grids on tablets (≤ 1024px), and a horizontal scrollable nav bar above the content on phones (≤ 640px); the page never scrolls horizontally, which the end-to-end suite checks at 390px, 820px and 1440px
 - **Interactive Charts**: Hover effects and tooltips
 - **Loading States**: Visual feedback during processing
 - **Color Coding**: Intuitive status indicators (green/red/yellow)
+
+## 📄 License
+
+Released under the [MIT License](LICENSE). You are free to use, copy, modify and distribute this code, including commercially, as long as the copyright and licence notice are kept.
+
 ---
 
 **Built to demonstrate Client Success AI/Data Engineering skills** • Ready for production deployment

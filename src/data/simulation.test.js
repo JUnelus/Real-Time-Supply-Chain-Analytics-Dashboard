@@ -9,10 +9,19 @@ import {
   SPARK_POINTS,
   mkSparks,
   PERF_HOURS,
+  DISRUPTION_RATE,
+  DISRUPTION_DROP,
+  ON_TIME_RANGE,
   mkPerformance,
   advancePerformance,
+  BASE_ORDERS_PER_HOUR,
+  DEMAND_LEVEL_BOUNDS,
+  mkDemand,
+  advanceDemand,
   INVENTORY_CATEGORIES,
   mkInventory,
+  stepInventory,
+  RESTOCK_THRESHOLD,
   BASE_REGIONS,
   stepRegions,
   ALERT_POOL,
@@ -82,8 +91,10 @@ describe("performance window", () => {
     expect(perf).toHaveLength(PERF_HOURS);
     expect(perf.map((p) => p.hour)).toEqual(Array.from({ length: 24 }, (_, i) => i));
     for (const p of perf) {
-      expect(p.onTime).toBeGreaterThanOrEqual(88);
-      expect(p.onTime).toBeLessThanOrEqual(100);
+      // Normal band is 88-100; a disrupted hour may drop by up to DISRUPTION_DROP[1].
+      expect(p.onTime).toBeGreaterThanOrEqual(ON_TIME_RANGE[0] - DISRUPTION_DROP[1]);
+      expect(p.onTime).toBeLessThanOrEqual(ON_TIME_RANGE[1]);
+      expect(typeof p.disrupted).toBe("boolean");
       expect(p.accuracy).toBeGreaterThanOrEqual(95);
       expect(p.efficiency).toBeLessThanOrEqual(95);
     }
@@ -104,9 +115,55 @@ describe("performance window", () => {
     expect(perf[0].hour).toBe(5);
   });
 
+  it("marks an hour as disrupted and drops its on-time rate when the roll is low", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0); // below DISRUPTION_RATE, and rnd() returns each range's minimum
+    const [p] = mkPerformance();
+    expect(p.disrupted).toBe(true);
+    expect(p.onTime).toBe(ON_TIME_RANGE[0] - DISRUPTION_DROP[0]);
+  });
+
+  it("leaves an hour undisturbed when the roll is above the disruption rate", () => {
+    vi.spyOn(Math, "random").mockReturnValue(DISRUPTION_RATE + 0.4);
+    const [p] = mkPerformance();
+    expect(p.disrupted).toBe(false);
+    expect(p.onTime).toBeGreaterThanOrEqual(ON_TIME_RANGE[0]);
+  });
+
   it("re-seeds a full window when given an empty one", () => {
     expect(advancePerformance([])).toHaveLength(PERF_HOURS);
     expect(advancePerformance(undefined)).toHaveLength(PERF_HOURS);
+  });
+});
+
+describe("demand series", () => {
+  it("seeds 24 hourly points with positive integer order counts and a bounded level", () => {
+    const demand = mkDemand();
+    expect(demand.map((p) => p.hour)).toEqual(Array.from({ length: 24 }, (_, i) => i));
+    for (const p of demand) {
+      expect(Number.isInteger(p.orders)).toBe(true);
+      expect(p.orders).toBeGreaterThan(0);
+      expect(p.level).toBeGreaterThanOrEqual(DEMAND_LEVEL_BOUNDS[0]);
+      expect(p.level).toBeLessThanOrEqual(DEMAND_LEVEL_BOUNDS[1]);
+    }
+  });
+
+  it("follows the daily profile: the overnight trough is well below the afternoon peak", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.5); // no noise, level drifts +0.5%/h
+    const demand = mkDemand();
+    const at = (h) => demand.find((p) => p.hour === h).orders;
+    expect(at(3)).toBeLessThan(at(13) / 3);
+    expect(at(0)).toBe(Math.round(BASE_ORDERS_PER_HOUR * 1.005 * 0.55));
+  });
+
+  it("rolls the window forward and carries the level across the boundary", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.5);
+    const demand = mkDemand();
+    const next = advanceDemand(demand);
+    expect(next).toHaveLength(24);
+    expect(next[0]).toEqual(demand[1]);
+    expect(next[23].hour).toBe(0);
+    expect(next[23].level).toBeCloseTo(demand[23].level * 1.005, 9);
+    expect(advanceDemand([])).toHaveLength(24);
   });
 });
 
@@ -121,6 +178,31 @@ describe("mkInventory", () => {
       expect(row.current).toBeLessThan(1200);
       expect(row.turnover).toMatch(/^\d+\.\d$/);
     }
+  });
+});
+
+describe("stepInventory", () => {
+  const row = { category: "Books", current: 500, optimal: 600, turnover: "7.3" }; // burn 12/day
+
+  it("consumes about a day of stock at the burn rate and keeps the other fields", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.5); // rnd(0.5, 1.5) -> 1.0
+    const [next] = stepInventory([row]);
+    expect(next.current).toBe(488);
+    expect(next).toMatchObject({ category: "Books", optimal: 600, turnover: "7.3" });
+  });
+
+  it("restocks to optimal once stock falls to the threshold", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.5);
+    const low = { ...row, current: Math.ceil(row.optimal * RESTOCK_THRESHOLD) + 5 }; // 95 -> 83, at or under 90
+    expect(stepInventory([low])[0].current).toBe(600);
+  });
+
+  it("never goes negative and does not mutate the input", () => {
+    const input = [{ ...row, turnover: "0" }];
+    const out = stepInventory(input);
+    expect(out[0].current).toBe(500);
+    expect(out[0]).not.toBe(input[0]);
+    expect(input[0].current).toBe(500);
   });
 });
 

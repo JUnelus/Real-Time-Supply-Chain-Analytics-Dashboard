@@ -1,9 +1,18 @@
 import React from "react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { Activity, BarChart2 } from "lucide-react";
+import { Activity, BarChart2, TrendingUp } from "lucide-react";
 import { SectionHeader, CustomTooltip } from "./viewShared";
+import { forecastDemand, formatHour, DEFAULT_FORECAST_HOURS } from "../data/analytics";
 
-export default function PerformanceView({ performanceData }) {
+export default function PerformanceView({ performanceData, demandData = [] }) {
+  // Actual hourly orders followed by the forecast hours; both series share a
+  // stack so each hour renders as a single bar in the matching colour.
+  const fc = forecastDemand(demandData);
+  const volume = [
+    ...demandData.map((d) => ({ label: formatHour(d.hour), actual: d.orders })),
+    ...(fc ? fc.forecast.map((f) => ({ label: formatHour(f.hour), forecast: f.orders })) : []),
+  ];
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <div className="glass rounded-2xl" style={{ padding: 24 }}>
@@ -39,6 +48,24 @@ export default function PerformanceView({ performanceData }) {
           </ResponsiveContainer>
         </div>
       </div>
+      {demandData.length > 0 && (
+        <div className="glass rounded-2xl" style={{ padding: 24 }}>
+          <SectionHeader icon={TrendingUp} title={`Order Volume & ${DEFAULT_FORECAST_HOURS}-Hour Forecast`} badge="LIVE" badgeColor="#00ffaa" />
+          <div style={{ height: 260 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={volume} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                <XAxis dataKey="label" stroke="#334155" tick={{ fill: "#475569", fontSize: 11 }} interval={2} />
+                <YAxis stroke="#334155" tick={{ fill: "#475569", fontSize: 11 }} />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend wrapperStyle={{ fontSize: 12, color: "#64748b", paddingTop: 8 }} />
+                <Bar dataKey="actual" stackId="volume" fill="#00e5ff" name="Orders" radius={[4, 4, 0, 0]} opacity={0.85} />
+                <Bar dataKey="forecast" stackId="volume" fill="#a855f7" name="Forecast" radius={[4, 4, 0, 0]} opacity={0.6} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

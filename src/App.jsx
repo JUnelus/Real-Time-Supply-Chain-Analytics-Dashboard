@@ -17,7 +17,10 @@ import {
   mkSparks,
   mkPerformance,
   advancePerformance,
+  mkDemand,
+  advanceDemand,
   mkInventory,
+  stepInventory,
   SHIPMENT_STATUS,
   BASE_REGIONS,
   stepRegions,
@@ -54,41 +57,40 @@ const TITLES = {
   alerts: "Alerts & Notifications",
 };
 
+// Layout (widths, collapse to an icon rail, phone top bar) lives in index.css
+// under ".sidebar" / ".nav-btn" so it can respond to viewport breakpoints.
 function Sidebar({ active, setActive, alertCount }) {
   return (
-    <div className="sidebar-bg" style={{ width: 220, flexShrink: 0, display: "flex", flexDirection: "column", height: "100vh", position: "sticky", top: 0 }}>
-      <div style={{ padding: "24px 20px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, #00e5ff, #a855f7)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <GitBranch size={18} color="white" />
-          </div>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#f1f5f9", lineHeight: 1.2 }}>Supply Chain</div>
-            <div style={{ fontSize: 10, color: "#475569", letterSpacing: 1 }}>INTELLIGENCE HUB</div>
-          </div>
+    <div className="sidebar sidebar-bg">
+      <div className="sidebar-brand">
+        <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, #00e5ff, #a855f7)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <GitBranch size={18} color="white" />
+        </div>
+        <div className="sidebar-brand-text">
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#f1f5f9", lineHeight: 1.2 }}>Supply Chain</div>
+          <div style={{ fontSize: 10, color: "#475569", letterSpacing: 1 }}>INTELLIGENCE HUB</div>
         </div>
       </div>
-      <nav style={{ flex: 1, padding: "12px" }}>
-        <p style={{ fontSize: 10, color: "#334155", letterSpacing: 1.5, padding: "8px", margin: "0 0 4px" }}>MAIN MENU</p>
+      <nav className="sidebar-nav" aria-label="Main menu">
+        <p className="nav-menu-heading">MAIN MENU</p>
         {NAV.map((item) => {
           const on = active === item.id;
+          const showBadge = item.id === "alerts" && alertCount > 0;
+          // Labels are hidden on tablet widths, so give the button an explicit name.
+          const name = showBadge ? `${item.label} (${alertCount} active)` : item.label;
           return (
-            <button key={item.id} onClick={() => setActive(item.id)} aria-current={on ? "page" : undefined} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 10px", borderRadius: 10, border: "none", cursor: "pointer", background: on ? "linear-gradient(135deg, rgba(0,229,255,0.15), rgba(168,85,247,0.1))" : "transparent", color: on ? "#f1f5f9" : "#64748b", fontSize: 13, fontWeight: on ? 600 : 400, marginBottom: 2, borderLeft: on ? "2px solid #00e5ff" : "2px solid transparent", transition: "all 0.2s" }}>
-              <item.icon size={16} style={{ color: on ? "#00e5ff" : "#475569" }} />
-              {item.label}
-              {item.id === "alerts" && alertCount > 0 && (
-                <span data-testid="alert-count" style={{ marginLeft: "auto", fontSize: 10, background: "#ef4444", color: "white", borderRadius: 20, padding: "1px 6px", fontWeight: 700 }}>{alertCount}</span>
-              )}
-              {on && <ChevronRight size={12} style={{ marginLeft: "auto", color: "#00e5ff" }} />}
+            <button key={item.id} onClick={() => setActive(item.id)} aria-current={on ? "page" : undefined} aria-label={name} title={item.label} className={"nav-btn" + (on ? " is-active" : "")}>
+              <item.icon size={16} className="nav-icon" />
+              <span className="nav-label">{item.label}</span>
+              {showBadge && <span data-testid="alert-count" className="alert-badge">{alertCount}</span>}
+              {on && <ChevronRight size={12} className="nav-chevron" />}
             </button>
           );
         })}
       </nav>
-      <div style={{ padding: "16px 20px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#00ffaa" }} className="animate-pulse-glow" />
-          <span style={{ fontSize: 11, color: "#475569" }}>All Systems Operational</span>
-        </div>
+      <div className="sidebar-footer">
+        <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#00ffaa", flexShrink: 0 }} className="animate-pulse-glow" title="All Systems Operational" />
+        <span className="sidebar-footer-text" style={{ fontSize: 11, color: "#475569" }}>All Systems Operational</span>
       </div>
     </div>
   );
@@ -104,23 +106,23 @@ function TopBar({ isProcessing, onRefresh }) {
   }, []);
 
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 28px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(7,11,20,0.85)", backdropFilter: "blur(20px)", position: "sticky", top: 0, zIndex: 50 }}>
-      <div>
-        <h1 className="gradient-text-cyan" style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Supply Chain Intelligence Hub</h1>
-        <p style={{ margin: 0, fontSize: 12, color: "#475569", marginTop: 2 }}>Real-time analytics powered by AI/ML · Live updates every 3s</p>
+    <div className="topbar">
+      <div style={{ minWidth: 0 }}>
+        <h1 className="gradient-text-cyan topbar-title">Supply Chain Intelligence Hub</h1>
+        <p className="topbar-subtitle">Real-time analytics powered by AI/ML · Live updates every 3s</p>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+      <div className="topbar-right">
         {isProcessing && (
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <RefreshCw size={12} style={{ color: "#00e5ff" }} className="animate-spin-slow" />
             <span style={{ fontSize: 11, color: "#00e5ff" }}>Refreshing...</span>
           </div>
         )}
-        <button onClick={onRefresh} style={{ background: "rgba(0,229,255,0.1)", border: "1px solid rgba(0,229,255,0.2)", borderRadius: 8, padding: "6px 12px", color: "#00e5ff", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+        <button onClick={onRefresh} style={{ background: "rgba(0,229,255,0.1)", border: "1px solid rgba(0,229,255,0.2)", borderRadius: 8, padding: "6px 12px", color: "#00e5ff", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
           <RefreshCw size={12} /> Refresh
         </button>
         <div style={{ textAlign: "right" }}>
-          <div data-testid="clock" style={{ fontFamily: "monospace", fontSize: 16, color: "#00e5ff", fontWeight: 600 }}>{time.toLocaleTimeString()}</div>
+          <div data-testid="clock" className="clock">{time.toLocaleTimeString()}</div>
           <div style={{ fontSize: 11, color: "#334155" }}>{time.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</div>
         </div>
       </div>
@@ -144,7 +146,8 @@ export default function SupplyChainDashboard() {
   // first paint, then advanced on a fixed interval by `refresh`.
   const [alerts, setAlerts] = useState(() => mkAlerts());
   const [perf, setPerf] = useState(mkPerformance);
-  const [inv] = useState(mkInventory);
+  const [demand, setDemand] = useState(mkDemand);
+  const [inv, setInv] = useState(mkInventory);
   const [regions, setRegions] = useState(BASE_REGIONS);
   const [sparks, setSparks] = useState(mkSparks);
   const [kpi, setKpi] = useState(INITIAL_KPI);
@@ -160,6 +163,8 @@ export default function SupplyChainDashboard() {
     pendingRefresh.current = setTimeout(() => {
       setKpi(stepKpi);
       setPerf(advancePerformance);
+      setDemand(advanceDemand);
+      setInv(stepInventory);
       setSparks(mkSparks());
       setKpiChanges(mkKpiChanges());
       setRegions(stepRegions());
@@ -180,19 +185,19 @@ export default function SupplyChainDashboard() {
 
   const viewByTab = {
     overview: <OverviewView kpiData={kpi} kpiChanges={kpiChanges} sparkSets={sparks} performanceData={perf} shipmentData={SHIPMENT_STATUS} regionData={regions} />,
-    performance: <PerformanceView performanceData={perf} />,
+    performance: <PerformanceView performanceData={perf} demandData={demand} />,
     inventory: <InventoryView inventoryData={inv} />,
     shipments: <ShipmentsView shipmentData={SHIPMENT_STATUS} regionData={regions} />,
-    ai: <AIView />,
+    ai: <AIView performanceData={perf} inventoryData={inv} demandData={demand} />,
     alerts: <AlertsView alerts={alerts} onDismiss={dismissAlert} />,
   };
 
   return (
-    <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "#070b14" }}>
+    <div className="app-shell">
       <Sidebar active={activeTab} setActive={setActiveTab} alertCount={alerts.length} />
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div className="main-col">
         <TopBar isProcessing={isProcessing} onRefresh={refresh} />
-        <div style={{ flex: 1, overflowY: "auto", padding: "28px 28px 48px" }}>
+        <div className="content">
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 24, fontSize: 13 }}>
             <span style={{ color: "#334155" }}>Dashboard</span>
             <ChevronRight size={14} style={{ color: "#1e293b" }} />
