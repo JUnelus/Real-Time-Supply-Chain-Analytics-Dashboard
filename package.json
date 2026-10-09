@@ -18,11 +18,11 @@
     "screenshots:update": "npm run build && node scripts/update-readme-screenshots.mjs"
   },
   "dependencies": {
-    "@tailwindcss/vite": "^4.3.0",
-    "lucide-react": "^1.41.0",
-    "react": "^19.1.1",
-    "react-dom": "^19.2.6",
-    "recharts": "^3.8.1",
+    "@tailwindcss/vite": "^4.3.3",
+    "lucide-react": "^1.52.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "recharts": "^3.10.1",
     "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
@@ -31,8 +31,8 @@
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.7",
-    "@types/react": "^19.1.10",
-    "@types/react-dom": "^19.2.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^5.0.0",
     "eslint": "^10.11.0",
     "eslint-plugin-react-hooks": "^7.1.1",
