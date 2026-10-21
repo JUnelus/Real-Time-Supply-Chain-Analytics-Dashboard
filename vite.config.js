@@ -18,5 +18,8 @@ export default defineConfig(({ command, isPreview }) => ({
     // Playwright owns e2e/; keep Vitest from picking those specs up.
     exclude: ['node_modules/**', 'dist/**', 'e2e/**'],
     css: false,
+    // Cold-cache runs resolve lazy view chunks slowly; must exceed the
+    // Testing Library asyncUtilTimeout set in src/test/setup.js.
+    testTimeout: 20000,
   },
 }))
